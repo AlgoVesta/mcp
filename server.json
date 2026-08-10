@@ -1,0 +1,14 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.algovesta/trading",
+  "title": "AlgoVesta MCP Trading",
+  "description": "Trade 16 crypto exchanges + MetaTrader 5 from your AI assistant via one MCP connection.",
+  "version": "1.0.0",
+  "websiteUrl": "https://algovesta.com/features-mcp.html",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.algovesta.com/mcp"
+    }
+  ]
+}

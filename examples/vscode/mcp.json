@@ -1,0 +1,9 @@
+{
+  "$comment": "Place this file at .vscode/mcp.json in your workspace, or add it to your user profile via the 'MCP: Open User Configuration' command.",
+  "servers": {
+    "algovesta": {
+      "type": "http",
+      "url": "https://api.algovesta.com/u/avmcp_<your-key>/mcp"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://algovesta.com/mcp-docs.html
+    about: Full developer documentation for the AlgoVesta MCP server.
+  - name: Account & trading support
+    url: https://algovesta.com/support-ticket.html
+    about: Questions about your account, keys, orders or billing. Never post your MCP link or API keys in a public issue.
+  - name: Security reports
+    url: https://github.com/AlgoVesta/mcp/blob/main/SECURITY.md
+    about: How to report a vulnerability privately.

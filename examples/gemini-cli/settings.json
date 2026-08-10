@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "algovesta": {
+      "httpUrl": "https://api.algovesta.com/u/avmcp_<your-key>/mcp"
+    }
+  }
+}
