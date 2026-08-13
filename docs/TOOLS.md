@@ -1,8 +1,8 @@
-# Tool reference — all 11 tools
+# Tool reference — all 20 tools
 
 > These are the exact tool descriptions the server sends to every MCP client in `tools/list` ([machine-readable copy](https://algovesta.com/mcp/tools.json)). They are written as instructions **to the AI assistant** — which is why they use imperatives and emphasis. This file is generated from the live server output; edits belong in the server, not here.
 
-Two conventions are deliberate and worth knowing before you read the table. **`place_order` is titled in capitals** — MCP clients render the tool title in the confirmation dialog, and the one tool that spends real money is meant to look different from the ten that do not. **Required fields accept `null` in the JSON Schema**: rather than failing on a raw schema error, the server collects every missing field and returns a single `MISSING_FIELDS` response naming all of them at once, so the assistant can ask you for everything in one message instead of discovering the gaps one at a time.
+Two conventions are deliberate and worth knowing before you read the table. **`place_order` is titled in capitals** — MCP clients render the tool title in the confirmation dialog, and the one tool that spends real money is meant to look different from the 19 that do not. **Required fields accept `null` in the JSON Schema**: rather than failing on a raw schema error, the server collects every missing field and returns a single `MISSING_FIELDS` response naming all of them at once, so the assistant can ask you for everything in one message instead of discovering the gaps one at a time.
 
 | Tool | Title | Scope | Kind | Rate limit (per key) |
 |---|---|---|---|---|
@@ -17,6 +17,15 @@ Two conventions are deliberate and worth knowing before you read the table. **`p
 | [`modify_position`](#modify_position) | Modify SL/TP | `paper\|live` | write | 60/min |
 | [`verify_receipt`](#verify_receipt) | Verify receipt | `read` | read-only | 60/min |
 | [`replay_channel`](#replay_channel) | Replay channel | `read` | read-only | 5/hour |
+| [`get_trade_history`](#get_trade_history) | Trade history | `read` | read-only | 60/min |
+| [`compare_venues`](#compare_venues) | Compare exchanges | `read` | read-only | 60/min |
+| [`list_strategies`](#list_strategies) | List strategies | `read` | read-only | 60/min |
+| [`create_strategy`](#create_strategy) | Create strategy | `paper\|live` | write | 60/min |
+| [`update_strategy`](#update_strategy) | Update strategy | `paper\|live` | write | 60/min |
+| [`backtest_my_signals`](#backtest_my_signals) | Backtest my signals | `read` | read-only | 60/min |
+| [`simulate_policy`](#simulate_policy) | Simulate risk policy | `read` | read-only | 60/min |
+| [`import_tradingview_backtest`](#import_tradingview_backtest) | Import TradingView backtest | `read` | read-only | 60/min |
+| [`get_job_status`](#get_job_status) | Job status | `read` | read-only | 60/min |
 
 ## get_portfolio_context
 
@@ -1166,6 +1175,721 @@ policy_rejections}}.
     "channel_ref"
   ],
   "title": "replay_channelArguments",
+  "type": "object"
+}
+```
+
+</details>
+
+## get_trade_history
+
+**Title:** Trade history &nbsp;·&nbsp; **Scope:** `read` &nbsp;·&nbsp; **Kind:** read-only<br>
+**Annotations:** `readOnlyHint=true` `destructiveHint=false` `idempotentHint=true`
+
+Returns the user's CLOSED trades and a performance summary, across crypto
+exchanges, MetaTrader 5 and the paper account in one list.
+
+Each trade carries symbol, side, size, entry/exit price, SL/TP, PnL, venue, source
+(telegram / webhook / mcp / manual) and timestamps. The summary adds win rate,
+total PnL, average R-multiple and a per-venue breakdown.
+
+HOW TO READ IT HONESTLY - say these out loud instead of smoothing them over:
+- `avg_rr` is computed only from trades where entry, SL and exit are ALL known;
+  `rr_sample` tells you how many trades that was. A 3-trade average is not evidence.
+- `total_pnl` is null when several account currencies are mixed (e.g. a EUR MT5
+  account next to USD crypto). Use `pnl_by_currency` and never add them together.
+- `fee` is null because commission is not recorded; PnL is therefore GROSS on crypto.
+- `incomplete_sources` means part of the history could not be read - the summary is
+  then incomplete and you must say so.
+
+This is a read tool: call it without asking the user for confirmation. It is history
+only; it does not tell you what will happen next, and past results do not predict
+future ones.
+
+<details>
+<summary>Input schema (JSON Schema)</summary>
+
+```json
+{
+  "properties": {
+    "venue": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional venue filter: 'paper', an exchange name (e.g. binance), 'mt5', or a specific MT5 account like 'mt5:12345678'. If omitted, every venue is included.",
+      "title": "Venue"
+    },
+    "symbol": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Trading symbol, e.g. BTCUSDT, ETHUSDT, EURUSD.",
+      "title": "Symbol"
+    },
+    "days": {
+      "default": 30,
+      "description": "Look-back window in days (1-365). Only trades CLOSED inside this window are returned.",
+      "title": "Days",
+      "type": "integer"
+    },
+    "limit": {
+      "default": 50,
+      "description": "Maximum number of trades to return (1-200), newest first.",
+      "title": "Limit",
+      "type": "integer"
+    },
+    "market": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional market filter: 'crypto', 'forex' or 'paper'.",
+      "title": "Market"
+    }
+  },
+  "title": "get_trade_historyArguments",
+  "type": "object"
+}
+```
+
+</details>
+
+## compare_venues
+
+**Title:** Compare exchanges &nbsp;·&nbsp; **Scope:** `read` &nbsp;·&nbsp; **Kind:** read-only<br>
+**Annotations:** `readOnlyHint=true` `destructiveHint=false` `idempotentHint=true`
+
+Compares the user's CONNECTED crypto exchanges for one symbol on measured
+execution cost: bid/ask spread, taker fee, and — when size_usd is given — the
+slippage that size would actually pay against the live order book.
+
+THIS TOOL DOES NOT CHOOSE AN EXCHANGE AND NEITHER SHOULD YOU. It is advisory only.
+The user still names the venue in place_order. AlgoVesta could not route around it
+even in principle: in crypto there is no central clearing, so the user's balance
+lives on the exchange they funded and cannot be moved to another one to catch a
+better price.
+
+HOW TO READ IT:
+- `estimated_cost_bps` sums ONLY the components listed in that venue's
+  `cost_components`. A venue with fewer components is not cheaper — it is less
+  measured. Say which components were included.
+- `cheapest_measured` means lowest measured cost, not lowest true cost.
+- Fees are the exchange's PUBLIC tier. The user's own VIP tier may be lower; repeat
+  `fee_tier_note` rather than presenting the fee as personal.
+- `skipped` lists venues removed WITH A REASON (symbol not listed, minimum order
+  value above the request, or recorded equity below it). A venue is never removed
+  just because data was missing — missing data shows as null, not as exclusion.
+- Still not measured: per-venue latency, transfer fees, funding differences.
+
+<details>
+<summary>Input schema (JSON Schema)</summary>
+
+```json
+{
+  "properties": {
+    "symbol": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Trading symbol, e.g. BTCUSDT, ETHUSDT, EURUSD.",
+      "title": "Symbol"
+    },
+    "market": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": "futures",
+      "description": "'futures' (default) or 'spot'.",
+      "title": "Market"
+    },
+    "side": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "'buy' (long) or 'sell' (short). Never choose without an EXPLICIT user instruction.",
+      "title": "Side"
+    },
+    "size_usd": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Order value in USD. Optional, but WITHOUT it slippage cannot be measured — pass the amount the user actually intends to trade to get a realistic comparison.",
+      "title": "Size Usd"
+    }
+  },
+  "title": "compare_venuesArguments",
+  "type": "object"
+}
+```
+
+</details>
+
+## list_strategies
+
+**Title:** List strategies &nbsp;·&nbsp; **Scope:** `read` &nbsp;·&nbsp; **Kind:** read-only<br>
+**Annotations:** `readOnlyHint=true` `destructiveHint=false` `idempotentHint=true`
+
+Lists the user's TradingView strategies with their settings, plan limit and
+whether real-money execution is currently on.
+
+Read `auto_trade` carefully and report it plainly: auto_trade=false means signals
+are only recorded, NOT traded with real money. auto_trade=true means every accepted
+signal on that strategy becomes a real order.
+
+The webhook URL is NEVER returned - that address is a password: anyone holding it
+can send signals into the account. The user copies it from the AlgoVesta panel.
+
+This is a read tool: call it without asking for confirmation.
+
+<details>
+<summary>Input schema (JSON Schema)</summary>
+
+```json
+{
+  "properties": {},
+  "title": "list_strategiesArguments",
+  "type": "object"
+}
+```
+
+</details>
+
+## create_strategy
+
+**Title:** Create strategy &nbsp;·&nbsp; **Scope:** `paper|live` &nbsp;·&nbsp; **Kind:** write<br>
+**Annotations:** `readOnlyHint=false` `destructiveHint=false` `idempotentHint=true`
+
+Creates a new TradingView strategy. It starts with REAL-MONEY EXECUTION OFF
+(auto_trade=false) and that cannot be changed from here - the user turns it on
+themselves in the AlgoVesta panel. Creating a strategy therefore never risks money.
+
+The strategy's webhook URL is not returned (it is a password); tell the user to copy
+it from the panel and paste it into their TradingView alert.
+
+Fails with a plan-limit error if the account has reached its strategy quota; call
+list_strategies first to see `plan_limit` and `can_create_more`.
+
+idempotency_key is REQUIRED: calling again with the same key returns the stored
+response instead of creating a SECOND strategy.
+
+<details>
+<summary>Input schema (JSON Schema)</summary>
+
+```json
+{
+  "properties": {
+    "name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Name for the new strategy (max 60 characters).",
+      "title": "Name"
+    },
+    "idempotency_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Client-generated unique idempotency key (min 8 characters). Reuse the SAME key when retrying the same action — the stored response is replayed and the action is NOT performed a second time.",
+      "title": "Idempotency Key"
+    }
+  },
+  "title": "create_strategyArguments",
+  "type": "object"
+}
+```
+
+</details>
+
+## update_strategy
+
+**Title:** Update strategy &nbsp;·&nbsp; **Scope:** `paper|live` &nbsp;·&nbsp; **Kind:** write<br>
+**Annotations:** `readOnlyHint=false` `destructiveHint=false` `idempotentHint=true`
+
+Changes the settings of an existing strategy (leverage, risk, SL/TP percentages,
+trailing, allowed symbols, target account, and whether it accepts signals at all).
+
+WHAT THIS TOOL CANNOT DO, on purpose:
+- `auto_trade` (the real-money switch) is REFUSED. A single order is one action; a
+  strategy runs forever, so turning real money on stays a human decision made in the
+  panel.
+- `ip_allowlist` is REFUSED: it is the second factor that verifies where signals come
+  from, so it must not be weakened from here.
+- Deleting a strategy is not possible here; that is done in the panel.
+Fields that were refused come back in `refused_fields` - report them to the user
+rather than silently claiming success.
+
+If you set `reverse_enabled` to true the response contains a `warning`: from then on
+a BUY signal opens a SHORT and a SELL signal opens a LONG on that strategy. You MUST
+pass that warning on to the user.
+
+Never change a setting the user did not ask for. idempotency_key is REQUIRED.
+
+<details>
+<summary>Input schema (JSON Schema)</summary>
+
+```json
+{
+  "properties": {
+    "strategy_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "id of the strategy to change, taken from list_strategies. Never pick a strategy the user did not name.",
+      "title": "Strategy Id"
+    },
+    "changes": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Fields to change, e.g. {\"leverage\": 5, \"risk_pct\": 1.5, \"enabled\": false}. Allowed: name, exchange, leverage (1-20), risk_pct (0.1-50), sl_percent, tp_percent, margin_type, trailing_enabled, trailing_trigger_pct, trailing_distance_pct, breakeven_enabled, breakeven_trigger_pct, multi_tp, ai_filter, ai_min_score, enabled, allowed_symbols, reverse_enabled, win_rate_filter_enabled, min_win_rate, builder_config, market_target, api_key_id, mt_account_id. auto_trade, status and ip_allowlist are REFUSED here by design.",
+      "title": "Changes"
+    },
+    "idempotency_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Client-generated unique idempotency key (min 8 characters). Reuse the SAME key when retrying the same action — the stored response is replayed and the action is NOT performed a second time.",
+      "title": "Idempotency Key"
+    }
+  },
+  "title": "update_strategyArguments",
+  "type": "object"
+}
+```
+
+</details>
+
+## backtest_my_signals
+
+**Title:** Backtest my signals &nbsp;·&nbsp; **Scope:** `read` &nbsp;·&nbsp; **Kind:** read-only<br>
+**Annotations:** `readOnlyHint=true` `destructiveHint=false` `idempotentHint=true`
+
+Answers "what would have happened to MY OWN past signals with different
+settings?" - for example "5x instead of 10x" or "a 2% stop instead of 1%".
+
+It replays the signals YOU actually received (your Telegram channels and your
+TradingView webhooks) against real historical 1-minute price data, twice: once with
+each signal's original stop-loss, take-profit and leverage, and once with the
+settings you asked for. The difference is reported under `comparison`.
+
+This runs in the background because a full replay can take several minutes. The call
+returns a `job_ref` immediately; poll `get_job_status(job_ref)` for the result.
+
+What the result always tells you, and what you MUST pass on to the user:
+- `coverage`: how many of their signals could actually be simulated. If some had no
+  historical price data or no stop-loss, the numbers describe only the subset.
+- `assumptions`: fees, slippage, partial-take-profit behaviour and what is NOT
+  modelled (funding fees). Never present the PnL without these.
+- Past performance does not guarantee future results. This is not investment advice.
+
+<details>
+<summary>Input schema (JSON Schema)</summary>
+
+```json
+{
+  "properties": {
+    "days": {
+      "default": 30,
+      "description": "Look-back window in days (1-90). Only your own signals received inside this window are replayed.",
+      "title": "Days",
+      "type": "integer"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": "all",
+      "description": "Which of your signal sources to replay: 'all' (default), 'telegram' for your connected Telegram channels, or 'tradingview' for your webhook strategies.",
+      "title": "Source"
+    },
+    "symbols": {
+      "anyOf": [
+        {
+          "items": {},
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional list of symbols to restrict the run to, e.g. ['BTCUSDT','SOLUSDT']. If omitted, every symbol in your signal history is included.",
+      "title": "Symbols"
+    },
+    "margin_usd": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Margin in USD to assume per trade (default 100). This is the collateral, not the position size: position size = margin x leverage.",
+      "title": "Margin Usd"
+    },
+    "leverage": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Override the leverage for every signal (1-125). Leave empty to use whatever leverage each signal originally carried. The exchange's own limit still applies to real orders.",
+      "title": "Leverage"
+    },
+    "sl_pct": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Override the stop-loss distance, in percent from entry (e.g. 2 means 2%). Leave empty to use each signal's own stop-loss.",
+      "title": "Sl Pct"
+    },
+    "tp_pct": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Override the take-profit distance, in percent from entry. Leave empty to use each signal's own take-profit.",
+      "title": "Tp Pct"
+    },
+    "max_hold_minutes": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Maximum time to hold a position, in minutes, before it is closed at market (default 1440 = 24 hours).",
+      "title": "Max Hold Minutes"
+    },
+    "taker_fee_bps": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Taker fee in basis points applied on entry AND exit (default 5 = 0.05%, the public Binance futures taker tier). Your own VIP tier is usually lower.",
+      "title": "Taker Fee Bps"
+    },
+    "partial_tp": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "If true, model AlgoVesta's partial take-profit behaviour: close half the position at half the take-profit distance and move the stop to break-even. Default false (plain stop-loss / take-profit).",
+      "title": "Partial Tp"
+    }
+  },
+  "title": "backtest_my_signalsArguments",
+  "type": "object"
+}
+```
+
+</details>
+
+## simulate_policy
+
+**Title:** Simulate risk policy &nbsp;·&nbsp; **Scope:** `read` &nbsp;·&nbsp; **Kind:** read-only<br>
+**Annotations:** `readOnlyHint=true` `destructiveHint=false` `idempotentHint=true`
+
+Answers "if I had had this risk rule in place, which of my trades would it have
+blocked, and what would that have done to my PnL?".
+
+It takes a risk policy - written in plain English, passed in already compiled, or
+your currently active one - and applies it to the trades YOU actually closed. It
+reports which ones would have been rejected, by which rule, and the PnL difference.
+
+Runs in the background: the call returns a `job_ref`, and `get_job_status(job_ref)`
+returns the result.
+
+Two honesty limits are always reported in `assumptions` and MUST be passed on:
+- Rules that depend on account state at the moment of the order (open position count,
+  daily loss so far, balance) are evaluated with zeros, because that state cannot be
+  reconstructed from closed trades. Those rules are UNDER-counted, never over-counted.
+- PnL comes from your recorded realised results; it is not re-simulated. If your
+  trades settled in more than one currency, totals are reported per currency and are
+  NOT added together.
+
+<details>
+<summary>Input schema (JSON Schema)</summary>
+
+```json
+{
+  "properties": {
+    "policy_text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The risk policy in plain English, e.g. 'never trade DOGE, never use more than 10x, always require a stop-loss'. Leave empty to test the policy you already have active.",
+      "title": "Policy Text"
+    },
+    "rules": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "An already-compiled rules object (the output of compile_policy). Use this instead of policy_text when you want to test an exact rule set.",
+      "title": "Rules"
+    },
+    "days": {
+      "default": 90,
+      "description": "How far back to look, in days (1-365). Only trades you actually CLOSED in this window are evaluated.",
+      "title": "Days",
+      "type": "integer"
+    }
+  },
+  "title": "simulate_policyArguments",
+  "type": "object"
+}
+```
+
+</details>
+
+## import_tradingview_backtest
+
+**Title:** Import TradingView backtest &nbsp;·&nbsp; **Scope:** `read` &nbsp;·&nbsp; **Kind:** read-only<br>
+**Annotations:** `readOnlyHint=true` `destructiveHint=false` `idempotentHint=true`
+
+Answers "TradingView says my strategy made X - what would it have made through
+AlgoVesta?".
+
+You export the strategy's trade list from TradingView and this recomputes it with
+real trading costs: taker fees on entry and exit, and the slippage we actually
+measure on fills. TradingView's default backtest applies neither unless the strategy
+author configured them, which is why exported results are usually optimistic.
+
+Runs in the background: the call returns a `job_ref`; read the result with
+`get_job_status(job_ref)`.
+
+Deliberate limits, always repeated in the result:
+- Pine Script is NOT executed or interpreted. Only the trade list you exported is
+  recomputed. Entry and exit prices stay exactly as TradingView reported them.
+- Funding fees are not modelled.
+- Rows without a quantity column cannot have fees applied, so their figures stay
+  optimistic; the count of such rows is reported.
+
+<details>
+<summary>Input schema (JSON Schema)</summary>
+
+```json
+{
+  "properties": {
+    "csv_text": {
+      "description": "The contents of the CSV you exported from TradingView: Strategy Tester -> List of Trades -> Export. Paste the file unchanged, including its header row. The 'Performance Summary' tab is NOT accepted - it has no per-trade rows.",
+      "title": "Csv Text",
+      "type": "string"
+    },
+    "taker_fee_bps": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Taker fee in basis points to apply on entry AND exit (default 5 = 0.05%).",
+      "title": "Taker Fee Bps"
+    },
+    "slippage_bps": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Slippage in basis points to apply on entry AND exit (default 3 = 0.03%, the value measured on our own fills).",
+      "title": "Slippage Bps"
+    },
+    "leverage": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Leverage to record with the run (1-125). It is metadata: the profit figures come from your export, so changing it does not rescale them.",
+      "title": "Leverage"
+    }
+  },
+  "required": [
+    "csv_text"
+  ],
+  "title": "import_tradingview_backtestArguments",
+  "type": "object"
+}
+```
+
+</details>
+
+## get_job_status
+
+**Title:** Job status &nbsp;·&nbsp; **Scope:** `read` &nbsp;·&nbsp; **Kind:** read-only<br>
+**Annotations:** `readOnlyHint=true` `destructiveHint=false` `idempotentHint=true`
+
+Returns the state and, once finished, the result of a background job started by
+backtest_my_signals, simulate_policy or import_tradingview_backtest.
+
+Call it with no argument to list your recent jobs.
+
+`status` is one of: PENDING (queued), RUNNING (in progress - `progress` is a
+percentage), DONE (`result` is present), FAILED (a retry is scheduled), DEAD (it will
+not be retried - `error` says why) or CANCELLED.
+
+Jobs run one at a time, so `queue_position` tells the user how many are ahead of
+theirs. Do not poll faster than about once every 10 seconds, and tell the user what
+the job is doing rather than repeating raw status codes at them.
+
+Storage: only the 20 most recent finished jobs keep their full result. Older ones
+are reduced to their summary and come back with `result_pruned: true` — the detailed
+rows are gone and the job has to be run again to regenerate them. Everything is
+deleted after 30 days. Backtest and policy runs are also written to your account's
+backtest history, and the result carries the `run_id` they were stored under.
+
+<details>
+<summary>Input schema (JSON Schema)</summary>
+
+```json
+{
+  "properties": {
+    "job_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The job_ref returned by backtest_my_signals, simulate_policy or import_tradingview_backtest. Leave empty to list your recent jobs instead.",
+      "title": "Job Ref"
+    }
+  },
+  "title": "get_job_statusArguments",
   "type": "object"
 }
 ```

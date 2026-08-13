@@ -36,6 +36,9 @@ Risk-reducing operations — `close_position` and `cancel_order` — are never b
 | Audit log | Every call is recorded with tool name, arguments, result and latency — readable in the panel and at `GET /api/mcp/audit`. |
 | Tenant isolation | Tools cannot accept a user ID; identity comes only from the authenticated connection. |
 | Trade-only exchange keys | Exchange API keys are created without withdrawal permission and stored AES-256 encrypted. There is no funds-movement path through MCP. |
+| Strategies cannot be armed | `create_strategy` always creates with `auto_trade` off, and `auto_trade` is absent from the writable field set of `update_strategy` — an assistant cannot switch a strategy to real money whatever it is asked. `ip_allowlist` (the second factor that verifies where signals come from) and deletion are refused for the same reason. Refused fields come back in `refused_fields` rather than being silently dropped. |
+| Webhook URLs are never returned | A strategy's webhook URL is a password: anyone holding it can send signals into the account. `list_strategies` reports only *whether* one is configured, so the address never enters an AI client's context. |
+| No automatic venue routing | `compare_venues` ranks exchanges but never selects one. The order still names its venue explicitly, and an unconnected venue returns `VENUE_NOT_CONNECTED` instead of a substitution. |
 
 ## Honest refusals, no silent downgrades
 
@@ -47,6 +50,8 @@ The server refuses rather than guesses:
 - Ambiguous targets are refused: multiple MT5 positions on one symbol require a `ticket`; multiple accounts in one market require `account`. While the target is ambiguous, nothing is executed.
 - Unverifiable data is labeled: if an MT5 terminal cannot be reached, `positions_source` is `unavailable` and an empty position list means *unknown*, not "no positions" — and the tool description instructs the model to say so.
 - Stale prices are stated as stale, never dressed up as live.
+- Comparisons say what they could not measure. `compare_venues` reports trading fees, order book depth and slippage as **not measured** — they are not available on this path, and no default fee table is substituted for them. An exchange that did not publish bid/ask is listed under `not_comparable_on_spread` instead of being ranked as if its spread were zero, so `cheapest_measured` means "lowest measured spread", not "cheapest overall".
+- History is reported with its gaps. In `get_trade_history`, the average R-multiple is computed only from trades where entry, stop-loss and exit are all known, and `rr_sample` states how many that was; `total_pnl` is `null` when several account currencies are mixed, with `pnl_by_currency` given instead of a converted single figure; commission is not recorded, so crypto PnL is gross and `fee` stays `null`. If a source could not be read, `incomplete_sources` says which — an empty list is never presented as "no trades".
 
 ## Measured, not promised
 

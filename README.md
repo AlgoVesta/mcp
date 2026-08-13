@@ -46,12 +46,14 @@ Ready-made snippets: [examples/](examples/).
 
 Only the Claude row has been verified end to end by us. The others follow each client's own official configuration documentation and this is a standard remote MCP server over Streamable HTTP, but we have not individually tested every client — if one of them misbehaves, [open an issue](../../issues) and we will look at it.
 
-## The 11 tools
+## The 20 tools
 
 | Tool | Scope | Kind | Purpose |
 |---|---|---|---|
 | `get_portfolio_context` | read | read-only | Every connected account in one call |
 | `get_market_price` | read | read-only | Live price with freshness reported |
+| `get_trade_history` | read | read-only | Closed trades and performance across crypto, MT5 and paper |
+| `compare_venues` | read | read-only | Ranks your connected exchanges on measured price and spread |
 | `simulate_order` | read | read-only | Dry-run including the policy verdict |
 | `place_order` | paper / live | destructive | Opens a position (live crypto: market orders only) |
 | `compile_policy` | read | read-only | Turns plain-language rules into a policy preview |
@@ -59,8 +61,29 @@ Only the Claude row has been verified end to end by us. The others follow each c
 | `cancel_order` | paper / live | destructive | Cancels a pending order |
 | `close_position` | paper / live | destructive | Closes fully or partially (MT5: full close only) |
 | `modify_position` | paper / live | write | Moves stop-loss and take-profit |
+| `list_strategies` | read | read-only | Your TradingView strategies and whether real money is on |
+| `create_strategy` | paper / live | write | New strategy, always created with real money OFF |
+| `update_strategy` | paper / live | write | Changes strategy settings (never `auto_trade`) |
 | `verify_receipt` | read | read-only | Checks signature and hash chain |
 | `replay_channel` | read | read-only | Backtests a Telegram channel against your rules |
+| `backtest_my_signals` | read | read-only | Replays your own past signals with different settings (queued job) |
+| `simulate_policy` | read | read-only | Applies a risk policy to the trades you actually closed (queued job) |
+| `import_tradingview_backtest` | read | read-only | Recomputes a TradingView trade export with real fees and slippage (queued job) |
+| `get_job_status` | read | read-only | Progress and result of a queued job |
+
+Two of these deserve a note, because what they *refuse* to do is the point:
+
+- **`compare_venues` does not route your order.** It reports the live price and, on the
+  venues that publish one, the bid/ask spread. It does not know your fee tier, the order
+  book depth or the slippage you would pay, and it says so in every response. A venue
+  that did not publish bid/ask is listed separately rather than ranked as if its spread
+  were zero. You still name the exchange yourself in `place_order`.
+- **`create_strategy` / `update_strategy` cannot turn real money on.** A new strategy is
+  always created with `auto_trade` off, and `auto_trade` is not in the writable field set
+  — an assistant cannot set it, whatever it is asked or persuaded to do. A single order is
+  one action you can see; a strategy keeps trading after the conversation ends, so arming
+  one stays a human decision made in the panel. `ip_allowlist` is refused for the same
+  reason: it is the second factor that verifies where signals come from.
 
 Full reference with descriptions and JSON Schemas: [docs/TOOLS.md](docs/TOOLS.md).
 

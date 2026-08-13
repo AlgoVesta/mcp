@@ -1,11 +1,11 @@
 # AlgoVesta MCP Server
 
-> AlgoVesta runs a hosted Model Context Protocol (MCP) server that reaches 16 crypto exchanges and MetaTrader 5 through one HTTPS connection. Claude, ChatGPT, Cursor, Claude Code and Gemini CLI can read portfolios, simulate and place orders, manage positions and verify signed receipts — behind a server-side risk policy wall, starting on a $5,000 paper balance by default. Eleven native MCP tools; OAuth 2.1 (PKCE S256, Dynamic Client Registration) or per-user secret links; ed25519-signed hash-chained receipts. AlgoVesta does not generate signals, hold, receive, or move client funds, and does not provide investment advice.
+> AlgoVesta runs a hosted Model Context Protocol (MCP) server that reaches 16 crypto exchanges and MetaTrader 5 through one HTTPS connection. Claude, ChatGPT, Cursor, Claude Code and Gemini CLI can read portfolios and closed-trade history, compare connected exchanges on measured price and spread, simulate and place orders, manage positions and TradingView strategies, and verify signed receipts — behind a server-side risk policy wall, starting on a $5,000 paper balance by default. Twenty native MCP tools; OAuth 2.1 (PKCE S256, Dynamic Client Registration) or per-user secret links; ed25519-signed hash-chained receipts. Strategy tools cannot arm real-money execution and the server never picks an exchange for you. AlgoVesta does not generate signals, hold, receive, or move client funds, and does not provide investment advice.
 
 ## Documentation
 
 - [README](https://github.com/AlgoVesta/mcp/blob/main/README.md): overview, quick start, client table, safety model, FAQ
-- [Tool reference](https://github.com/AlgoVesta/mcp/blob/main/docs/TOOLS.md): all 11 tools with descriptions and JSON Schemas
+- [Tool reference](https://github.com/AlgoVesta/mcp/blob/main/docs/TOOLS.md): all 20 tools with descriptions and JSON Schemas
 - [Authentication](https://github.com/AlgoVesta/mcp/blob/main/docs/AUTHENTICATION.md): secret links, OAuth 2.1, the three scopes
 - [Safety](https://github.com/AlgoVesta/mcp/blob/main/docs/SAFETY.md): policy wall, mandatory stop-loss, idempotency, receipts
 - [Full developer docs](https://algovesta.com/mcp-docs.html): canonical documentation page

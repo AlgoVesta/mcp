@@ -48,7 +48,7 @@ POST https://api.algovesta.com/mcp/oauth/token
 
 | Scope | What it can do | How you get it |
 |---|---|---|
-| `read` | Portfolio, prices, pending orders, simulations, policy previews, receipt verification, channel replay. **No order can be placed.** | Created directly. |
+| `read` | Portfolio, closed-trade history, exchange comparison, prices, pending orders, strategy listing, simulations, policy previews, receipt verification, channel replay, and the three queued analysis jobs (own-signal backtest, policy simulation, TradingView backtest import) with their job status. **No order can be placed.** | Created directly. |
 | `paper` | Everything in `read`, plus orders executed against the paper engine on a $5,000 virtual balance. **The default for new keys.** | Created directly. |
 | `live` | Everything above, plus real orders on your connected exchanges and MetaTrader 5 accounts. | **Second factor required** (TOTP, or an email code for panel-created keys; OAuth requires TOTP). Enforced server-side. |
 
