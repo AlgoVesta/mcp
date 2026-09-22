@@ -10,3 +10,6 @@ Replace `avmcp_<your-key>` with the key from your AlgoVesta panel (**MCP Connect
 | VS Code (Copilot) | [vscode/mcp.json](vscode/mcp.json) | `.vscode/mcp.json` in your workspace |
 | ChatGPT (paid plans) | [chatgpt.md](chatgpt.md) | No file — added as a custom connector in developer mode |
 | Gemini CLI | [gemini-cli/settings.json](gemini-cli/settings.json) | `~/.gemini/settings.json` |
+| Anything else | [other-clients.md](other-clients.md) | The three config shapes, plus a `curl` connection check |
+
+The [README](../README.md#which-ai-clients-can-use-this-server) lists the clients we know document remote MCP support, each linked to its own configuration docs.

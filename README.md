@@ -6,6 +6,8 @@
 
 AlgoVesta runs a hosted [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that reaches **16 crypto exchanges and MetaTrader 5** through one HTTPS link. Claude, ChatGPT, Cursor, Claude Code, Gemini CLI or any MCP-capable client can read balances, open and close positions, move stop-loss and take-profit, and audit its own actions — with your risk rules evaluated on the server, outside the model's reach. Every new key starts on a **$5,000 paper balance**, and every action returns an **ed25519-signed receipt**.
 
+**Contents:** [Quick start](#quick-start) · [Claude / ChatGPT / Cursor setup](#quick-start-with-claude-chatgpt-or-cursor) · [Supported AI clients](#which-ai-clients-can-use-this-server) · [Usage examples](#usage-examples) · [The 20 tools](#the-20-tools) · [Safety model](#safety-model) · [Venues](#venues) · [Rate limits and latency](#rate-limits-and-latency) · [FAQ](#faq)
+
 > The server is hosted and closed-source. This repository contains its public documentation, tool reference and client configuration examples. There is nothing to install or build — you connect to the hosted endpoint.
 
 ## Quick start
@@ -30,21 +32,151 @@ https://api.algovesta.com/mcp
 
 PKCE (`S256`) is mandatory and Dynamic Client Registration (RFC 7591) is supported, so most clients configure themselves. See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md).
 
-## Connect your client
+## Quick start with Claude, ChatGPT or Cursor
 
-| AI client | Where the link goes | Notes |
-|---|---|---|
-| Claude (web, desktop, iOS, Android) | Customize → Connectors → Add custom connector | Verified end to end against this server. |
-| Claude Code | `claude mcp add --transport http algovesta <url>` | Command-line; good for scripted workflows. |
-| Cursor | `mcp.json`, the `"url"` field | — |
-| VS Code (Copilot) | `.vscode/mcp.json`, `"servers"` with `"type": "http"` | — |
-| ChatGPT | Developer mode → custom connector | **Paid plans only** (an OpenAI restriction). |
-| Gemini CLI | `~/.gemini/settings.json`, the `"httpUrl"` field | **CLI only** — the Gemini web app does not support custom MCP servers. |
-| Any other MCP client | Its own MCP settings | Standard remote MCP over Streamable HTTP. |
+**Claude** (web, desktop, iOS, Android) — Settings → Connectors → *Add custom connector*, paste the URL, then allow the tools when Claude asks. Full walkthrough: [examples/claude.md](examples/claude.md).
 
-Ready-made snippets: [examples/](examples/).
+**Claude Code** — one command:
 
-Only the Claude row has been verified end to end by us. The others follow each client's own official configuration documentation and this is a standard remote MCP server over Streamable HTTP, but we have not individually tested every client — if one of them misbehaves, [open an issue](../../issues) and we will look at it.
+```bash
+claude mcp add --transport http algovesta https://api.algovesta.com/u/avmcp_<your-key>/mcp
+```
+
+**ChatGPT** — Settings → Connectors → *Advanced* → Developer mode → *Create*, transport **Streamable HTTP**. Custom connectors are a paid-plan feature on OpenAI's side. See [examples/chatgpt.md](examples/chatgpt.md).
+
+**Cursor** — `~/.cursor/mcp.json` (or `.cursor/mcp.json` in a project):
+
+```json
+{ "mcpServers": { "algovesta": { "url": "https://api.algovesta.com/u/avmcp_<your-key>/mcp" } } }
+```
+
+**VS Code (GitHub Copilot)** — `.vscode/mcp.json`:
+
+```json
+{ "servers": { "algovesta": { "type": "http", "url": "https://api.algovesta.com/u/avmcp_<your-key>/mcp" } } }
+```
+
+**Gemini CLI** — `~/.gemini/settings.json`:
+
+```json
+{ "mcpServers": { "algovesta": { "httpUrl": "https://api.algovesta.com/u/avmcp_<your-key>/mcp" } } }
+```
+
+Ready-made files for each of these: [examples/](examples/).
+
+## Which AI clients can use this server
+
+This is a standard **remote MCP server over Streamable HTTP**, with OAuth 2.1 (PKCE `S256` + Dynamic Client Registration) as an alternative to the secret link. Anything that speaks remote MCP can connect. The clients below document remote MCP support themselves — each row links to that client's own documentation, which is also where the exact field name for a remote server lives.
+
+**Assistants and chat apps**
+
+| Client | MCP docs |
+|---|---|
+| Claude — web, desktop, iOS, Android | [Custom connectors](https://support.claude.com/en/articles/11175166-about-custom-connectors-remote-mcp-servers) |
+| ChatGPT — Developer mode connectors | [OpenAI MCP docs](https://platform.openai.com/docs/mcp) |
+| Microsoft Copilot Studio agents | [Extend with MCP](https://learn.microsoft.com/en-us/microsoft-copilot-studio/agent-extend-action-mcp) |
+| Goose (Block) | [goose](https://block.github.io/goose/) |
+| LibreChat | [MCP in LibreChat](https://www.librechat.ai/docs/features/mcp) |
+| Open WebUI | [docs.openwebui.com](https://docs.openwebui.com/) |
+| Cherry Studio | [docs.cherry-ai.com](https://docs.cherry-ai.com/) |
+| Raycast | [raycast.com](https://www.raycast.com/) |
+
+**Coding agents and IDEs**
+
+| Client | MCP docs |
+|---|---|
+| Claude Code | [Claude Code MCP](https://docs.anthropic.com/en/docs/claude-code/mcp) |
+| OpenAI Codex CLI | [Codex MCP](https://developers.openai.com/codex/mcp/) |
+| Gemini CLI | [MCP servers in Gemini CLI](https://google-gemini.github.io/gemini-cli/docs/tools/mcp-server.html) |
+| Cursor | [Cursor MCP](https://cursor.com/docs/context/mcp) |
+| VS Code — GitHub Copilot | [MCP servers in VS Code](https://code.visualstudio.com/docs/copilot/customization/mcp-servers) |
+| Windsurf | [Cascade MCP](https://docs.windsurf.com/windsurf/cascade/mcp) |
+| Zed | [Zed MCP](https://zed.dev/docs/ai/mcp) |
+| Cline | [Connecting to a remote server](https://docs.cline.bot/mcp/connecting-to-a-remote-server) |
+| Roo Code | [Using MCP in Roo](https://docs.roocode.com/features/mcp/using-mcp-in-roo) |
+| Kilo Code | [Using MCP in Kilo Code](https://kilocode.ai/docs/features/mcp/using-mcp-in-kilo-code) |
+| Continue | [MCP deep dive](https://docs.continue.dev/customize/deep-dives/mcp) |
+| JetBrains AI Assistant | [MCP in JetBrains IDEs](https://www.jetbrains.com/help/ai-assistant/mcp.html) |
+| Warp | [Warp MCP](https://docs.warp.dev/knowledge-and-collaboration/mcp) |
+| Amazon Q Developer | [MCP with Amazon Q](https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/qdev-mcp.html) |
+| Kiro (AWS) | [Kiro MCP](https://kiro.dev/docs/mcp/) |
+| Sourcegraph Amp | [Amp manual](https://ampcode.com/manual#mcp) |
+| Trae | [Trae MCP](https://docs.trae.ai/ide/model-context-protocol) |
+| PostHog Code | [posthog.com/code](https://posthog.com/code/) |
+| Archestra.AI | [archestra.ai](https://www.archestra.ai/) |
+
+**Frameworks, automation and developer tools**
+
+| Client | MCP docs |
+|---|---|
+| OpenAI Agents SDK | [MCP in the Agents SDK](https://openai.github.io/openai-agents-python/mcp/) |
+| fast-agent | [evalstate/fast-agent](https://github.com/evalstate/fast-agent) |
+| n8n — MCP Client Tool node | [docs.n8n.io](https://docs.n8n.io/) |
+| Postman | [MCP requests](https://learning.postman.com/docs/postman-ai-agent-builder/mcp-requests/overview/) |
+| MCP Inspector | [modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector) |
+| MCPJam | [mcpjam.com](https://www.mcpjam.com/) |
+
+**Honest scope.** We have verified Claude end to end against this server. The rest are listed because they document remote MCP support, not because we individually tested each one; MCP client support also moves fast, and a client may gate connectors behind a paid plan (ChatGPT does) or behind its CLI only (the Gemini web app does not take custom MCP servers). If a client on this list misbehaves with us, [open an issue](../../issues) and we will look at it. If one is missing, open an issue for that too.
+
+## Usage examples
+
+You do not call tools by name — you ask in plain language and the assistant picks the tool. These are real prompts and the tool each one reaches for.
+
+**Look before you trade**
+
+> "What's in my accounts right now, and how has this month gone?"
+
+`get_portfolio_context` — every connected exchange, MT5 account and the paper book in one call, then `get_trade_history` for closed trades and performance.
+
+> "Where is BTC trading on the exchanges I've connected?"
+
+`compare_venues` — measured price and, where the venue publishes it, bid/ask spread. It does not route the order and says so; you still name the exchange yourself.
+
+**Rehearse on paper, then decide**
+
+> "If I opened 0.05 BTC long on Binance with a stop at 2%, what would that cost me, and would my rules allow it?"
+
+`simulate_order` — a dry run *including the policy verdict*, so a rule violation shows up before anything is placed.
+
+> "OK, open it — stop-loss 2% below entry, take-profit 4% above."
+
+`place_order` — refused outright if there is no stop-loss and no saved default. On a `paper` key this fills against the $5,000 virtual balance with the exact same tools; nothing about the conversation changes when the key is `live`.
+
+**Manage what is already open**
+
+> "Move the stop on my ETH position up to break-even."
+
+`modify_position` — stop-loss and take-profit only. The stop cannot be removed, here or anywhere else.
+
+> "Close half of the SOL long."
+
+`close_position` — partial close on crypto; MT5 closes in full.
+
+**Set the rules the server will enforce**
+
+> "Never risk more than 1% of my balance on a trade, no more than 3 positions open, and stop me for the day after a 5% drawdown."
+
+`compile_policy` — turns that into a JSON policy you can read back. Once saved, it is evaluated on the server *after* the request leaves the model, so a later prompt injection cannot argue its way past it.
+
+**Check the work**
+
+> "Show me the receipt for that last order and verify it."
+
+`verify_receipt` — checks the ed25519 signature and the hash chain against a [public key](https://api.algovesta.com/mcp/receipts/pubkey) you can fetch yourself.
+
+> "Run my last 90 days of signals again with a 1% risk cap instead."
+
+`simulate_policy` (queued) — then `get_job_status` for the result.
+
+**What the assistant will refuse**
+
+> "Turn on auto-trading for that strategy."
+
+Refused — `auto_trade` is not a writable field for any scope. Arming a strategy stays a human decision made in the panel.
+
+> "Trade on Kraken for me."
+
+`VENUE_NOT_CONNECTED` if you have not connected Kraken. The server returns the error rather than guessing a venue.
 
 ## The 20 tools
 
