@@ -12,4 +12,4 @@ Replace `avmcp_<your-key>` with the key from your AlgoVesta panel (**MCP Connect
 | Gemini CLI | [gemini-cli/settings.json](gemini-cli/settings.json) | `~/.gemini/settings.json` |
 | Anything else | [other-clients.md](other-clients.md) | The three config shapes, plus a `curl` connection check |
 
-The [README](../README.md#which-ai-clients-can-use-this-server) lists the clients we know document remote MCP support, each linked to its own configuration docs.
+The [README](../README.md#supported-ai-clients) lists the clients we know document remote MCP support, each linked to its own configuration docs.

@@ -11,7 +11,7 @@ Two URLs, pick one:
 
 ## The three config shapes you will meet
 
-Almost every JSON-configured client uses one of these. Check your client's own MCP documentation for which one it expects — the [README](../README.md#which-ai-clients-can-use-this-server) links to that documentation for each client we know of.
+Almost every JSON-configured client uses one of these. Check your client's own MCP documentation for which one it expects — the [README](../README.md#supported-ai-clients) links to that documentation for each client we know of.
 
 ```json
 { "mcpServers": { "algovesta": { "url": "https://api.algovesta.com/u/avmcp_<your-key>/mcp" } } }
