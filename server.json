@@ -3,8 +3,20 @@
   "name": "com.algovesta/trading",
   "title": "AlgoVesta MCP Trading",
   "description": "Trade 16 crypto exchanges + MetaTrader 5 from your AI assistant via one MCP connection.",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "websiteUrl": "https://algovesta.com/features-mcp.html",
+  "icons": [
+    {
+      "src": "https://algovesta.com/favicon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": ["any"]
+    },
+    {
+      "src": "https://algovesta.com/favicon-192.png",
+      "mimeType": "image/png",
+      "sizes": ["192x192"]
+    }
+  ],
   "remotes": [
     {
       "type": "streamable-http",
