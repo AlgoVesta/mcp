@@ -43,19 +43,20 @@ Your risk rules are compiled to JSON and evaluated **on the server, after the re
 
 ```mermaid
 flowchart LR
-    A["AI client<br/>Claude · ChatGPT · Cursor · …"]
-    B["AlgoVesta MCP server<br/>scope · rate limit · idempotency"]
+    A["AI client<br/>Claude, ChatGPT, Cursor, and more"]
+    B["AlgoVesta MCP server<br/>scope, rate limit, idempotency"]
     C{"Policy wall<br/>evaluated server-side"}
-    R["Refusal<br/>+ audit entry"]
+    R["Refusal<br/>plus audit entry"]
     D["Execution"]
     E["16 crypto exchanges"]
     F["MetaTrader 5<br/>managed terminals"]
-    G["Paper engine<br/>$5,000 virtual"]
+    G["Paper engine<br/>5,000 USD virtual"]
     H["ed25519-signed receipt"]
 
-    A -- "MCP over HTTPS" --> B --> C
-    C -- "violates a rule" --> R
-    C -- "allowed" --> D
+    A -->|MCP over HTTPS| B
+    B --> C
+    C -->|violates a rule| R
+    C -->|allowed| D
     D --> E
     D --> F
     D --> G
