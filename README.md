@@ -81,71 +81,66 @@ Clients that prefer a full authorization flow can use **OAuth 2.1** instead, at 
 
 ## Connect your client
 
-<table>
-<tr><td width="50%" valign="top">
+Six walkthroughs below; anything else uses the same URL in whatever field it calls a remote MCP server.
 
-**Claude** — web, desktop, iOS, Android
+### Claude — web, desktop, iOS, Android
 
-Settings → Connectors → *Add custom connector*, paste the URL, then allow the tools when Claude asks.
+Settings -> Connectors -> **Add custom connector**, paste the URL, then allow the tools when Claude asks. [Walkthrough](examples/claude.md)
 
-[Walkthrough →](examples/claude.md)
-
-</td><td width="50%" valign="top">
-
-**Claude Code**
+### Claude Code
 
 ```bash
-claude mcp add --transport http algovesta \
-  https://api.algovesta.com/u/avmcp_<your-key>/mcp
+claude mcp add --transport http algovesta https://api.algovesta.com/u/avmcp_<your-key>/mcp
 ```
 
-[Walkthrough →](examples/claude-code.md)
+[Walkthrough](examples/claude-code.md)
 
-</td></tr>
-<tr><td valign="top">
+### ChatGPT
 
-**ChatGPT**
+Settings -> Connectors -> **Advanced** -> Developer mode -> **Create**, transport **Streamable HTTP**. Custom connectors are a paid-plan feature on OpenAI's side. [Walkthrough](examples/chatgpt.md)
 
-Settings → Connectors → *Advanced* → Developer mode → *Create*, transport **Streamable HTTP**. Custom connectors are a paid-plan feature on OpenAI's side.
+### Cursor
 
-[Walkthrough →](examples/chatgpt.md)
-
-</td><td valign="top">
-
-**Cursor** — `~/.cursor/mcp.json`
+`~/.cursor/mcp.json`, or `.cursor/mcp.json` inside a project — [file](examples/cursor/mcp.json)
 
 ```json
-{ "mcpServers": { "algovesta": {
-  "url": "https://api.algovesta.com/u/avmcp_<your-key>/mcp"
-} } }
+{
+  "mcpServers": {
+    "algovesta": { "url": "https://api.algovesta.com/u/avmcp_<your-key>/mcp" }
+  }
+}
 ```
 
-</td></tr>
-<tr><td valign="top">
+### VS Code — GitHub Copilot
 
-**VS Code (GitHub Copilot)** — `.vscode/mcp.json`
+`.vscode/mcp.json` — [file](examples/vscode/mcp.json)
 
 ```json
-{ "servers": { "algovesta": {
-  "type": "http",
-  "url": "https://api.algovesta.com/u/avmcp_<your-key>/mcp"
-} } }
+{
+  "servers": {
+    "algovesta": {
+      "type": "http",
+      "url": "https://api.algovesta.com/u/avmcp_<your-key>/mcp"
+    }
+  }
+}
 ```
 
-</td><td valign="top">
+### Gemini CLI
 
-**Gemini CLI** — `~/.gemini/settings.json`
+`~/.gemini/settings.json` — [file](examples/gemini-cli/settings.json). CLI only; the Gemini web app does not accept custom MCP servers.
 
 ```json
-{ "mcpServers": { "algovesta": {
-  "httpUrl": "https://api.algovesta.com/u/avmcp_<your-key>/mcp"
-} } }
+{
+  "mcpServers": {
+    "algovesta": { "httpUrl": "https://api.algovesta.com/u/avmcp_<your-key>/mcp" }
+  }
+}
 ```
 
-</td></tr>
-</table>
+### Anything else
 
-Ready-made files: [examples/](examples/) · Anything else: [examples/other-clients.md](examples/other-clients.md)
+The three config shapes you will meet, plus a `curl` connection check: [examples/other-clients.md](examples/other-clients.md)
 
 ## Supported AI clients
 
