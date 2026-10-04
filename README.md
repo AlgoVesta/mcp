@@ -297,13 +297,13 @@ Six exchanges — Binance, Bybit, OKX, Gate.io, KuCoin and Bitget — have been 
 | `place_order` | 10 / minute |
 | `replay_channel` | 5 / hour (results cached 24 h) |
 
-Measured, not marketing — all figures measured in August 2026:
+Measured, not marketing — figures measured in August 2026; the averages match the ones published on algovesta.com:
 
 | Stage | Measured |
 |---|---|
 | Request intake and parsing | 17–67 ms (median 38, n=6) |
-| End to end on MetaTrader 5 | about 1 second (849 ms on a live demo order) |
-| End to end on a crypto exchange | about 3 seconds (2,785 ms on a live order) |
+| End to end on MetaTrader 5 | about 1.2 seconds on average, stop-loss and take-profit included (single live demo order: 849 ms) |
+| End to end on a crypto exchange | about 4.1 seconds on average, stop-loss and take-profit included (single live order: 2,785 ms) |
 | Paper engine | median 318 ms (n=18, min 284, max 769) |
 
 Time spent inside your AI client — the model thinking, and you confirming — is not included and usually dominates. This server is not a low-latency execution venue and is not sold as one.
