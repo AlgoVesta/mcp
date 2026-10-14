@@ -1,0 +1,11 @@
+{
+  "symbol": "{{ticker}}",
+  "action": "buy",
+  "price": "{{close}}",
+  "stop_loss": "{{plot_0}}",
+  "take_profits": [
+    {"price": "{{plot_1}}", "close_pct": 50},
+    {"price": "{{plot_2}}", "close_pct": 30},
+    {"price": "{{plot_3}}", "close_pct": 20}
+  ]
+}

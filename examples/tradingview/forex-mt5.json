@@ -1,0 +1,9 @@
+{
+  "symbol": "XAUUSD",
+  "action": "sell",
+  "market": "forex",
+  "price": "{{close}}",
+  "stop_loss": "{{plot_0}}",
+  "take_profit": "{{plot_1}}",
+  "lots": 0.10
+}

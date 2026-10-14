@@ -1,0 +1,10 @@
+{
+  "symbol": "ETHUSDT",
+  "action": "long",
+  "market": "crypto",
+  "price": "{{close}}",
+  "stop_loss": "{{plot_0}}",
+  "take_profit": "{{plot_1}}",
+  "amount_usd": 100,
+  "leverage": 5
+}

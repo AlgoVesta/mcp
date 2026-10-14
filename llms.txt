@@ -9,6 +9,9 @@
 - [Authentication](https://github.com/AlgoVesta/mcp/blob/main/docs/AUTHENTICATION.md): secret links, OAuth 2.1, the three scopes
 - [Safety](https://github.com/AlgoVesta/mcp/blob/main/docs/SAFETY.md): policy wall, mandatory stop-loss, idempotency, receipts
 - [Full developer docs](https://algovesta.com/mcp-docs.html): canonical documentation page
+- [TradingView alert templates](https://github.com/AlgoVesta/mcp/blob/main/examples/tradingview/README.md): six JSON alert messages plus the webhook field reference
+- [Telegram signal parsing corpus](https://github.com/AlgoVesta/mcp/blob/main/examples/signals/README.md): 30 synthetic messages with expected parse results
+- [MCP client code examples](https://github.com/AlgoVesta/mcp/blob/main/examples/mcp-clients/README.md): Python and Node.js programs that list tools and place a paper order
 - [Machine-readable tool schemas](https://algovesta.com/mcp/tools.json): live tools/list output
 
 ## Endpoints

@@ -1,0 +1,7 @@
+{
+  "symbol": "{{ticker}}",
+  "action": "buy",
+  "price": "{{close}}",
+  "stop_loss": "{{plot_0}}",
+  "take_profit": "{{plot_1}}"
+}
