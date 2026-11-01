@@ -1,0 +1,38 @@
+# Checks that the links in this documentation repository resolve.
+# It reads Markdown files only; nothing in the repository is built or executed.
+name: Documentation links
+
+on:
+  push:
+    branches: [main]
+    paths: ["**/*.md", ".github/workflows/links.yml"]
+  pull_request:
+    paths: ["**/*.md"]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          fail: true
+          args: >-
+            --no-progress
+            --max-retries 3
+            --accept 200,206,429
+            --exclude "avmcp_"
+            --exclude "^https://api\.algovesta\.com/mcp$"
+            --exclude "^https://api\.algovesta\.com/mcp/(oauth|events)"
+            --exclude "/issues$"
+            --exclude "glama\.ai/mcp/servers/.*/badges/"
+            --exclude "^mailto:"
+            "./**/*.md"

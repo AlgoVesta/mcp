@@ -2,9 +2,13 @@
 
 # AlgoVesta MCP Server
 
-**Trade 16 crypto exchanges and MetaTrader 5 from your AI assistant — over one MCP connection.**
+**MCP server for 16 crypto exchanges + MetaTrader 5.**
 
-[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-com.algovesta%2Ftrading-1f6feb)](https://registry.modelcontextprotocol.io)
+Trade from Claude, ChatGPT, Cursor or any MCP client over one hosted HTTPS connection. Paper by default.
+
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-com.algovesta%2Ftrading-1f6feb)](https://registry.modelcontextprotocol.io/v0/servers?search=algovesta)
+[![Glama score](https://glama.ai/mcp/servers/AlgoVesta/mcp/badges/score.svg)](https://glama.ai/mcp/servers/AlgoVesta/mcp)
+[![Smithery](https://img.shields.io/badge/Smithery-algovesta%2Ftrading-ff5601)](https://smithery.ai/servers/algovesta/trading)
 [![Transport](https://img.shields.io/badge/transport-Streamable%20HTTP-0b7285)](https://modelcontextprotocol.io)
 [![Auth](https://img.shields.io/badge/auth-OAuth%202.1%20%C2%B7%20PKCE%20S256-5f3dc4)](docs/AUTHENTICATION.md)
 [![Tools](https://img.shields.io/badge/tools-20-2b8a3e)](docs/TOOLS.md)
@@ -22,7 +26,7 @@ Your risk rules are compiled to JSON and evaluated **on the server, after the re
 
 > **Hosted and closed-source.** This repository is the public documentation, tool reference and client configuration set. There is nothing to install, build or self-host — you connect to the hosted endpoint.
 
-**Contents** — [At a glance](#at-a-glance) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Connect your client](#connect-your-client) · [Supported AI clients](#supported-ai-clients) · [In use](#what-it-looks-like-in-use) · [Tools](#tools) · [Safety model](#safety-model) · [Venues](#venues) · [Performance and limits](#performance-and-limits) · [Endpoints](#endpoints) · [FAQ](#faq)
+**Contents** — [At a glance](#at-a-glance) · [How it works](#how-it-works) · [Install in 2 minutes](#install-in-2-minutes) · [Connect your client](#connect-your-client) · [Supported AI clients](#supported-ai-clients) · [In use](#what-it-looks-like-in-use) · [Tools](#tools) · [Safety model](#safety-model) · [Venues](#venues) · [Performance and limits](#performance-and-limits) · [Endpoints](#endpoints) · [FAQ](#faq)
 
 ## At a glance
 
@@ -30,7 +34,7 @@ Your risk rules are compiled to JSON and evaluated **on the server, after the re
 |---|---|
 | **Transport** | Remote MCP over Streamable HTTP |
 | **Authentication** | Secret link, or OAuth 2.1 with mandatory PKCE (`S256`) and Dynamic Client Registration (RFC 7591) |
-| **Tools** | 20 — 13 read-only, 3 write, 4 destructive ([reference](docs/TOOLS.md)) |
+| **Tools** | 20 — 14 read-only, 1 additive write, 5 destructive ([reference](docs/TOOLS.md)) |
 | **Venues** | 16 crypto exchanges · MetaTrader 5 · built-in paper engine |
 | **Default scope** | `paper` — $5,000 virtual balance, identical toolset |
 | **Live scope** | Issued only after a second factor, enforced server-side |
@@ -65,7 +69,9 @@ flowchart LR
 
 The model is the **caller**, never the authority. It decides what to ask for; the server decides what happens. Your exchange API keys never leave AlgoVesta and are created without withdrawal permission — the assistant only ever holds a scoped, revocable MCP link.
 
-## Quick start
+## Install in 2 minutes
+
+There is nothing to install locally: the server is hosted. An AI agent can follow [llms-install.md](llms-install.md) step by step.
 
 1. Create an AlgoVesta account and open the **MCP Connection** tab in the panel.
 2. Generate a key. New keys default to the `paper` scope; the full link is shown once.
@@ -212,7 +218,7 @@ You never call a tool by name. You ask in plain language; the assistant picks th
 | You say | The assistant reaches for |
 |---|---|
 | *"What's in my accounts right now, and how has this month gone?"* | `get_portfolio_context` — every exchange, MT5 account and the paper book in one call — then `get_trade_history` |
-| *"Where is BTC trading on the exchanges I've connected?"* | `compare_venues` — measured price and, where published, bid/ask spread |
+| *"Where is BTC trading on the exchanges I've connected?"* | `compare_venues` — measured spread, taker fee and, for a given size, slippage |
 | *"If I opened 0.05 BTC long on Binance with a 2% stop, what would it cost and would my rules allow it?"* | `simulate_order` — a dry run **including the policy verdict** |
 | *"OK, open it — stop 2% below, target 4% above."* | `place_order` |
 | *"Move the stop on my ETH position up to break-even."* | `modify_position` |
@@ -227,39 +233,39 @@ On a `paper` key every one of those runs against the $5,000 virtual balance with
 
 ## Tools
 
-20 tools. Scope `read` works on any key; `paper` / `live` gates the rest.
+20 tools. Scope `read` works on any key; `paper` / `live` gates the rest. *Kind* follows each tool's MCP annotations: `destructive` means the tool can overwrite or remove state (open, close, cancel, move a stop, change a strategy); `write (additive)` only creates something new. The table is generated from the live `tools/list` output.
 
 <details open>
 <summary><b>Full tool list</b></summary>
 
-| Tool | Scope | Kind | Purpose |
-|---|---|---|---|
-| `get_portfolio_context` | read | read-only | Every connected account in one call |
-| `get_market_price` | read | read-only | Live price with freshness reported |
-| `get_trade_history` | read | read-only | Closed trades and performance across crypto, MT5 and paper |
-| `compare_venues` | read | read-only | Ranks your connected exchanges on measured price and spread |
-| `simulate_order` | read | read-only | Dry-run including the policy verdict |
-| `place_order` | paper / live | destructive | Opens a position (live crypto: market orders only) |
-| `compile_policy` | read | read-only | Turns plain-language rules into a policy preview |
-| `list_open_orders` | read | read-only | Pending limit orders (paper book) |
-| `cancel_order` | paper / live | destructive | Cancels a pending order |
-| `close_position` | paper / live | destructive | Closes fully or partially (MT5: full close only) |
-| `modify_position` | paper / live | write | Moves stop-loss and take-profit |
-| `list_strategies` | read | read-only | Your TradingView strategies and whether real money is on |
-| `create_strategy` | paper / live | write | New strategy, always created with real money OFF |
-| `update_strategy` | paper / live | write | Changes strategy settings (never `auto_trade`) |
-| `verify_receipt` | read | read-only | Checks signature and hash chain |
-| `replay_channel` | read | read-only | Backtests a Telegram channel against your rules |
-| `backtest_my_signals` | read | read-only | Replays your own past signals with different settings (queued job) |
-| `simulate_policy` | read | read-only | Applies a risk policy to the trades you actually closed (queued job) |
-| `import_tradingview_backtest` | read | read-only | Recomputes a TradingView trade export with real fees and slippage (queued job) |
-| `get_job_status` | read | read-only | Progress and result of a queued job |
+| Tool | Title | Scope | Kind | What it does |
+|---|---|---|---|---|
+| `get_portfolio_context` | Read portfolio | read | read-only | Normalized portfolio view of all connected exchange accounts + MT5 + paper. |
+| `get_market_price` | Live price | read | read-only | Returns the LIVE price of a crypto or MT5 symbol: last (+ bid/ask if available) + ts + source. |
+| `simulate_order` | Simulate order | read | read-only | SIMULATES an order: expected fill, margin impact, policy check result. |
+| `place_order` | PLACE ORDER | paper / live | destructive | Places an order. |
+| `compile_policy` | Compile policy | read | read-only | Compiles natural-language risk rules into a JSON policy and returns a PREVIEW. |
+| `list_open_orders` | Pending orders | read | read-only | Lists the user's pending limit orders (order_ref, venue, symbol, side, entry_price, size, created_at). |
+| `cancel_order` | Cancel order | paper / live | destructive | Cancels a pending limit order. |
+| `close_position` | Close position | paper / live | destructive | Closes an open position fully or partially (fraction (0,1]). |
+| `modify_position` | Modify SL/TP | paper / live | destructive | Updates the SL/TP of an open position on a crypto exchange or FOREX/MT5. |
+| `verify_receipt` | Verify receipt | read | read-only | Verifies an order receipt: ed25519 signature + per-user hash chain. |
+| `replay_channel` | Replay channel | read | read-only | Answers "what if you had followed this Telegram channel for the last N days under these rules?". |
+| `get_trade_history` | Trade history | read | read-only | Returns the user's CLOSED trades and a performance summary, across crypto exchanges, MetaTrader 5 and the paper account in one list. |
+| `compare_venues` | Compare exchanges | read | read-only | Compares the user's CONNECTED crypto exchanges for one symbol on measured execution cost. |
+| `list_strategies` | List strategies | read | read-only | Lists the user's TradingView strategies with their settings, plan limit and whether real-money execution is currently on. |
+| `create_strategy` | Create strategy | paper / live | write (additive) | Creates a new TradingView strategy. |
+| `update_strategy` | Update strategy | paper / live | destructive | Changes the settings of an existing strategy (leverage, risk, SL/TP percentages, trailing, allowed symbols, target account, and whether it accepts signals at all). |
+| `backtest_my_signals` | Backtest my signals | read | read-only | Answers "what would have happened to MY OWN past signals with different settings?" - for example "5x instead of 10x" or "a 2% stop instead of 1%". |
+| `simulate_policy` | Simulate risk policy | read | read-only | Answers "if I had had this risk rule in place, which of my trades would it have blocked, and what would that have done to my PnL?". |
+| `import_tradingview_backtest` | Import TradingView backtest | read | read-only | Answers "TradingView says my strategy made X - what would it have made through AlgoVesta?". |
+| `get_job_status` | Job status | read | read-only | Returns the state and, once finished, the result of a background job started by backtest_my_signals, simulate_policy or import_tradingview_backtest. |
 
 </details>
 
 Two of them deserve a note, because what they **refuse** to do is the point:
 
-- **`compare_venues` does not route your order.** It reports the live price and, on venues that publish one, the bid/ask spread. It does not know your fee tier, the order book depth or the slippage you would pay — and it says so in every response. A venue that publishes no bid/ask is listed separately rather than ranked as if its spread were zero. You still name the exchange yourself in `place_order`.
+- **`compare_venues` does not route your order.** For each connected exchange it reports the bid/ask spread, the public taker fee and, when you give an order size, the slippage that size would pay against the live order book. It does not know your own VIP fee tier, and a venue whose cost could not be measured is left out of the ranking rather than treated as free. You still name the exchange yourself in `place_order`.
 - **`create_strategy` / `update_strategy` cannot turn real money on.** A new strategy is always created with `auto_trade` off, and `auto_trade` is not in the writable field set — an assistant cannot set it, whatever it is asked or persuaded to do. A single order is one action you can see; a strategy keeps trading after the conversation ends, so arming one stays a human decision made in the panel. `ip_allowlist` is refused for the same reason: it is the second factor that verifies where signals come from.
 
 Full reference with descriptions and JSON Schemas: [docs/TOOLS.md](docs/TOOLS.md) · machine-readable: [tools.json](https://algovesta.com/mcp/tools.json)

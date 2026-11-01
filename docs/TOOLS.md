@@ -14,14 +14,14 @@ Two conventions are deliberate and worth knowing before you read the table. **`p
 | [`list_open_orders`](#list_open_orders) | Pending orders | `read` | read-only | 60/min |
 | [`cancel_order`](#cancel_order) | Cancel order | `paper\|live` | destructive | 60/min |
 | [`close_position`](#close_position) | Close position | `paper\|live` | destructive | 60/min |
-| [`modify_position`](#modify_position) | Modify SL/TP | `paper\|live` | write | 60/min |
+| [`modify_position`](#modify_position) | Modify SL/TP | `paper\|live` | destructive | 60/min |
 | [`verify_receipt`](#verify_receipt) | Verify receipt | `read` | read-only | 60/min |
 | [`replay_channel`](#replay_channel) | Replay channel | `read` | read-only | 5/hour |
 | [`get_trade_history`](#get_trade_history) | Trade history | `read` | read-only | 60/min |
 | [`compare_venues`](#compare_venues) | Compare exchanges | `read` | read-only | 60/min |
 | [`list_strategies`](#list_strategies) | List strategies | `read` | read-only | 60/min |
 | [`create_strategy`](#create_strategy) | Create strategy | `paper\|live` | write | 60/min |
-| [`update_strategy`](#update_strategy) | Update strategy | `paper\|live` | write | 60/min |
+| [`update_strategy`](#update_strategy) | Update strategy | `paper\|live` | destructive | 60/min |
 | [`backtest_my_signals`](#backtest_my_signals) | Backtest my signals | `read` | read-only | 60/min |
 | [`simulate_policy`](#simulate_policy) | Simulate risk policy | `read` | read-only | 60/min |
 | [`import_tradingview_backtest`](#import_tradingview_backtest) | Import TradingView backtest | `read` | read-only | 60/min |
@@ -941,10 +941,10 @@ question.
 
 ## modify_position
 
-**Title:** Modify SL/TP &nbsp;·&nbsp; **Scope:** `paper|live` &nbsp;·&nbsp; **Kind:** write<br>
-**Annotations:** `readOnlyHint=false` `destructiveHint=false` `idempotentHint=true`
+**Title:** Modify SL/TP &nbsp;·&nbsp; **Scope:** `paper|live` &nbsp;·&nbsp; **Kind:** destructive (asks for confirmation in capable clients)<br>
+**Annotations:** `readOnlyHint=false` `destructiveHint=true` `idempotentHint=true`
 
-Updates the SL/TP of an open position — works for crypto and FOREX/MT5.
+Updates the SL/TP of an open position on a crypto exchange or FOREX/MT5.
 AT LEAST ONE of new_sl/new_tp must be given. SL CANNOT BE REMOVED (the
 mandatory-SL rule stands). Logic: long requires new_sl < mark < new_tp, short the
 reverse. idempotency_key is REQUIRED.
@@ -1277,8 +1277,8 @@ future ones.
 **Annotations:** `readOnlyHint=true` `destructiveHint=false` `idempotentHint=true`
 
 Compares the user's CONNECTED crypto exchanges for one symbol on measured
-execution cost: bid/ask spread, taker fee, and — when size_usd is given — the
-slippage that size would actually pay against the live order book.
+execution cost. It reports the bid/ask spread, the taker fee and, when size_usd is
+given, the slippage that size would actually pay against the live order book.
 
 THIS TOOL DOES NOT CHOOSE AN EXCHANGE AND NEITHER SHOULD YOU. It is advisory only.
 The user still names the venue in place_order. AlgoVesta could not route around it
@@ -1454,8 +1454,8 @@ response instead of creating a SECOND strategy.
 
 ## update_strategy
 
-**Title:** Update strategy &nbsp;·&nbsp; **Scope:** `paper|live` &nbsp;·&nbsp; **Kind:** write<br>
-**Annotations:** `readOnlyHint=false` `destructiveHint=false` `idempotentHint=true`
+**Title:** Update strategy &nbsp;·&nbsp; **Scope:** `paper|live` &nbsp;·&nbsp; **Kind:** destructive (asks for confirmation in capable clients)<br>
+**Annotations:** `readOnlyHint=false` `destructiveHint=true` `idempotentHint=true`
 
 Changes the settings of an existing strategy (leverage, risk, SL/TP percentages,
 trailing, allowed symbols, target account, and whether it accepts signals at all).

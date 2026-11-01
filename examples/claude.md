@@ -18,4 +18,4 @@ Claude connects through **Connectors** — no config file needed. Custom connect
 
 4. Ask: *"How is my portfolio?"* — Claude calls `get_portfolio_context` and shows every connected account.
 
-Tool titles and confirmation dialogs come straight from the server; the write tools (`place_order`, `close_position`, `cancel_order`) are marked destructive, so Claude asks before executing them.
+Tool titles and confirmation dialogs come straight from the server; the tools that can overwrite or remove state (`place_order`, `close_position`, `cancel_order`, `modify_position`, `update_strategy`) are marked destructive, so Claude asks before executing them.
