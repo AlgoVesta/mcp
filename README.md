@@ -103,7 +103,7 @@ claude mcp add --transport http algovesta https://api.algovesta.com/u/avmcp_<you
 
 ### ChatGPT
 
-Settings -> Connectors -> **Advanced** -> Developer mode -> **Create**, transport **Streamable HTTP**. Custom connectors are a paid-plan feature on OpenAI's side. [Walkthrough](examples/chatgpt.md)
+[chatgpt.com/plugins](https://chatgpt.com/plugins) -> **+** -> **Add custom MCP server** -> public endpoint `https://api.algovesta.com/mcp` (Streamable HTTP, OAuth). Account and workspace policies on OpenAI's side decide who can add custom MCP servers. [Walkthrough](examples/chatgpt.md)
 
 ### Cursor
 
