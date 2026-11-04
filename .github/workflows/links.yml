@@ -33,6 +33,7 @@ jobs:
             --exclude "^https://api\.algovesta\.com/mcp$"
             --exclude "^https://api\.algovesta\.com/mcp/(oauth|events)"
             --exclude "/issues$"
+            --exclude "^https://chatgpt\.com/plugins$"
             --exclude "glama\.ai/mcp/servers/.*/badges/"
             --exclude "^mailto:"
             "./**/*.md"

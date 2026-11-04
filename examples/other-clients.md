@@ -50,4 +50,4 @@ curl -s https://algovesta.com/mcp/tools.json | head
 - New keys are `paper` scope. That is not a failure — the tools are identical, they just fill against the $5,000 virtual balance until you issue a `live` key with a second factor.
 - Some clients only support remote MCP in their CLI or desktop build, not on the web.
 
-Still stuck? [Open an issue](../../../issues) with the client name and version, or write to [support@algovesta.com](mailto:support@algovesta.com). Never include your key.
+Still stuck? [Open an issue](https://github.com/AlgoVesta/mcp/issues) with the client name and version, or write to [support@algovesta.com](mailto:support@algovesta.com). Never include your key.

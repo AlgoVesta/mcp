@@ -8,7 +8,6 @@ Trade from Claude, ChatGPT, Cursor or any MCP client over one hosted HTTPS conne
 
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-com.algovesta%2Ftrading-1f6feb)](https://registry.modelcontextprotocol.io/v0/servers?search=algovesta)
 [![Glama score](https://glama.ai/mcp/servers/AlgoVesta/mcp/badges/score.svg)](https://glama.ai/mcp/servers/AlgoVesta/mcp)
-[![Smithery](https://img.shields.io/badge/Smithery-algovesta%2Ftrading-ff5601)](https://smithery.ai/servers/algovesta/trading)
 [![Transport](https://img.shields.io/badge/transport-Streamable%20HTTP-0b7285)](https://modelcontextprotocol.io)
 [![Auth](https://img.shields.io/badge/auth-OAuth%202.1%20%C2%B7%20PKCE%20S256-5f3dc4)](docs/AUTHENTICATION.md)
 [![Tools](https://img.shields.io/badge/tools-20-2b8a3e)](docs/TOOLS.md)
@@ -91,7 +90,7 @@ Six walkthroughs below; anything else uses the same URL in whatever field it cal
 
 ### Claude — web, desktop, iOS, Android
 
-Settings -> Connectors -> **Add custom connector**, paste the URL, then allow the tools when Claude asks. [Walkthrough](examples/claude.md)
+Customize -> Connectors -> **+** -> **Add custom connector**, paste the URL, then allow the tools when Claude asks. [Walkthrough](examples/claude.md)
 
 ### Claude Code
 
@@ -158,12 +157,12 @@ This is a standard remote MCP server over Streamable HTTP, so anything that spea
 | Client | MCP documentation |
 |---|---|
 | Claude — web, desktop, iOS, Android | [Custom connectors](https://support.claude.com/en/articles/11175166-about-custom-connectors-remote-mcp-servers) |
-| ChatGPT — Developer mode connectors | [OpenAI MCP docs](https://platform.openai.com/docs/mcp) |
+| ChatGPT — custom MCP servers | [OpenAI MCP docs](https://platform.openai.com/docs/mcp) |
 | Microsoft Copilot Studio agents | [Extend with MCP](https://learn.microsoft.com/en-us/microsoft-copilot-studio/agent-extend-action-mcp) |
 | Goose (Block) | [block.github.io/goose](https://block.github.io/goose/) |
 | LibreChat | [MCP in LibreChat](https://www.librechat.ai/docs/features/mcp) |
 | Open WebUI | [docs.openwebui.com](https://docs.openwebui.com/) |
-| Cherry Studio | [docs.cherry-ai.com](https://docs.cherry-ai.com/) |
+| Cherry Studio | [CherryHQ/cherry-studio](https://github.com/CherryHQ/cherry-studio) |
 | Raycast | [raycast.com](https://www.raycast.com/) |
 
 </details>
@@ -209,7 +208,7 @@ This is a standard remote MCP server over Streamable HTTP, so anything that spea
 
 </details>
 
-> **Scope of that claim.** We have verified **Claude** end to end against this server. The others are listed because they document remote MCP support — not because we individually tested each one. Client support also moves fast, and a given client may gate connectors behind a paid plan (ChatGPT does) or behind its CLI only (the Gemini web app does not accept custom MCP servers). If a listed client misbehaves with us, or one is missing, [open an issue](../../issues).
+> **Scope of that claim.** We have verified **Claude** end to end against this server. The others are listed because they document remote MCP support — not because we individually tested each one. Client support also moves fast, and a given client may gate custom servers behind account or workspace policy (ChatGPT does) or behind its CLI only (the Gemini web app does not accept custom MCP servers). If a listed client misbehaves with us, or one is missing, [open an issue](https://github.com/AlgoVesta/mcp/issues).
 
 ## What it looks like in use
 
@@ -377,7 +376,7 @@ Ready-to-use files in [`examples/`](examples/):
 
 Account and trading questions: [support](https://algovesta.com/support-ticket.html) · [support@algovesta.com](mailto:support@algovesta.com)
 Vulnerability reports: [SECURITY.md](SECURITY.md)
-Client that will not connect, or one missing from the list above: [open an issue](../../issues)
+Client that will not connect, or one missing from the list above: [open an issue](https://github.com/AlgoVesta/mcp/issues)
 
 ## Compliance
 

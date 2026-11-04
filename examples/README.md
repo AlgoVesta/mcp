@@ -8,7 +8,7 @@ Replace `avmcp_<your-key>` with the key from your AlgoVesta panel (**MCP Connect
 | Claude Code | [claude-code.md](claude-code.md) | One CLI command |
 | Cursor | [cursor/mcp.json](cursor/mcp.json) | `.cursor/mcp.json` in your project, or Cursor's MCP settings |
 | VS Code (Copilot) | [vscode/mcp.json](vscode/mcp.json) | `.vscode/mcp.json` in your workspace |
-| ChatGPT (paid plans) | [chatgpt.md](chatgpt.md) | No file — added as a custom connector in developer mode |
+| ChatGPT | [chatgpt.md](chatgpt.md) | No file — added as a custom MCP server at chatgpt.com/plugins |
 | Gemini CLI | [gemini-cli/settings.json](gemini-cli/settings.json) | `~/.gemini/settings.json` |
 | Anything else | [other-clients.md](other-clients.md) | The three config shapes, plus a `curl` connection check |
 
