@@ -1,6 +1,6 @@
 # Tool reference — all 20 tools
 
-> These are the exact tool descriptions the server sends to every MCP client in `tools/list` ([machine-readable copy](https://algovesta.com/mcp/tools.json)). They are written as instructions **to the AI assistant** — which is why they use imperatives and emphasis. This file is generated from the live server output; edits belong in the server, not here.
+> These are the exact tool descriptions the server sends to every MCP client in `tools/list` ([machine-readable copy](https://algovesta.com/mcp/tools.json)). Each one describes what the tool does and what the server enforces; none of them tells the assistant how to behave. This file is generated from the live server output; edits belong in the server, not here.
 
 Two conventions are deliberate and worth knowing before you read the table. **`place_order` is titled in capitals** — MCP clients render the tool title in the confirmation dialog, and the one tool that spends real money is meant to look different from the 19 that do not. **Required fields accept `null` in the JSON Schema**: rather than failing on a raw schema error, the server collects every missing field and returns a single `MISSING_FIELDS` response naming all of them at once, so the assistant can ask you for everything in one message instead of discovering the gaps one at a time.
 
@@ -46,9 +46,8 @@ account. "live_ea" means the position list is real data verified by the MetaTrad
 Expert Advisor (EA) AlgoVesta runs on its managed terminal.
 "unavailable" means the EA/terminal could not be reached — in that case
 positions=[] does NOT mean "no open positions", only that it could not be
-verified. For such an account never tell the user definitively "you have no
-open positions"; say "this cannot be verified right now, try again or check
-the terminal".
+verified: the open-position state of that account is unknown at that moment, not
+empty.
 
 <details>
 <summary>Input schema (JSON Schema)</summary>
@@ -69,8 +68,8 @@ the terminal".
 **Annotations:** `readOnlyHint=true` `destructiveHint=false` `idempotentHint=true`
 
 Returns the LIVE price of a crypto or MT5 symbol: last (+ bid/ask if available) + ts + source.
-Take the price FROM HERE before opening an order — do NOT use your own estimate or stale
-knowledge. A current price is essential when computing SL/TP/limit levels. Source order:
+This is the server's current price for the symbol, used for SL/TP/limit levels. For
+sl_pct/tp_pct orders the server reads the live entry itself. Source order:
 (1) the shared price cache (~1s fresh), (2) if not cached, a single live REST call to the
 exchange. If the price is older than 10s OR cannot be fetched, that is stated EXPLICITLY —
 a stale price is never presented as live.
@@ -96,7 +95,7 @@ Returns: {ok, venue, symbol, last, bid, ask, ts, source, age_sec} or {ok:false, 
         }
       ],
       "default": null,
-      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). Never choose one the user did not name.",
+      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). A venue that is not connected is rejected with VENUE_NOT_CONNECTED.",
       "title": "Venue"
     },
     "symbol": {
@@ -128,18 +127,16 @@ Returns: {ok, venue, symbol, last, bid, ask, ts, source, age_sec} or {ok:false, 
 SIMULATES an order: expected fill, margin impact, policy check result.
 Sends NO real order.
 
-This is a READ operation — do NOT ask the user for confirmation before calling
-simulate_order. Show its result to the user as ONE summary and ask for ONE
-confirmation; call place_order once confirmed.
+It has no side effects: no order is sent and no state changes (read-only). The
+response carries everything a place_order call with the same arguments would use:
+resolved account, entry, SL/TP (including values derived from sl_pct/tp_pct and from
+saved settings via `prefs_used`), size, leverage and the policy verdict.
 
-Ask for all missing fields in ONE message; NEVER invent a value for any field.
-AMOUNT DISTINCTION (CRITICAL): if the user says 'X dollars' with leverage (e.g.
-'$20 at 5x') and it is NOT clear whether they mean MARGIN (margin_usd=20 -> a $100
-position) or POSITION VALUE (size_usd=20 -> a $20 position), ASK — do not open an
-order of the wrong size.
-SIZE FIELD DEPENDS ON MARKET: forex/MT5 -> `lots` (0.05, 0.10... exactly what the
-customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not send
-`leverage` for forex.
+Missing required fields are returned together in ONE error.
+AMOUNT FIELDS: margin_usd is the collateral (margin_usd=20 at 5x -> a $100 position);
+size_usd is the position value (size_usd=20 -> a $20 position).
+SIZE FIELD DEPENDS ON MARKET: forex/MT5 -> `lots` (used exactly as given); crypto ->
+EXACTLY ONE of size_usd/margin_usd/risk_pct. `leverage` is not used for forex.
 
 <details>
 <summary>Input schema (JSON Schema)</summary>
@@ -156,7 +153,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
           "type": "null"
         }
       ],
-      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). Never choose one the user did not name.",
+      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). A venue that is not connected is rejected with VENUE_NOT_CONNECTED.",
       "title": "Venue"
     },
     "symbol": {
@@ -180,7 +177,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
           "type": "null"
         }
       ],
-      "description": "'buy' (long) or 'sell' (short). Never choose without an EXPLICIT user instruction.",
+      "description": "'buy' (long) or 'sell' (short). The side the user stated.",
       "title": "Side"
     },
     "order_type": {
@@ -205,7 +202,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
         }
       ],
       "default": null,
-      "description": "Leverage (crypto). Send it if the user STATED one; if they did NOT, LEAVE IT EMPTY — the server applies the leverage saved in the user's panel. NEVER pick a value yourself: leverage changes position size and overrides the user's setting. For FOREX/MT5 do NOT ask and do NOT send: the product is unleveraged (1x) and size is given via lots.",
+      "description": "Leverage (crypto). Optional: when omitted, the leverage saved in the user's panel is applied and reported in `prefs_used`. A value sent here overrides that saved setting and changes the position size. Not used for FOREX/MT5: that product is unleveraged (1x) and size is given via lots.",
       "title": "Leverage"
     },
     "sl": {
@@ -218,7 +215,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
         }
       ],
       "default": null,
-      "description": "Stop-loss PRICE. Below entry for long, above entry for short. If the user did NOT state one, LEAVE IT EMPTY — the user's saved SL percentage is applied (use `sl_pct` if you want to pass a percentage). NEVER invent a price. SL remains mandatory: if neither a value nor a saved setting exists, the order is NOT opened.",
+      "description": "Stop-loss PRICE. Below entry for long, above entry for short. Optional: when omitted, the user's saved SL percentage is applied (reported in `prefs_used`); `sl_pct` takes a percentage instead of a price. A value sent here overrides the saved setting. SL remains mandatory: if neither a value nor a saved setting exists, the order is NOT opened.",
       "title": "Sl"
     },
     "tp": {
@@ -231,7 +228,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
         }
       ],
       "default": null,
-      "description": "Take-profit PRICE. Above entry for long, below entry for short. If the user did NOT state one, LEAVE IT EMPTY — the user's saved TP percentage is applied. NEVER invent a price.",
+      "description": "Take-profit PRICE. Above entry for long, below entry for short. Optional: when omitted, the user's saved TP percentage is applied (reported in `prefs_used`). A value sent here overrides the saved setting.",
       "title": "Tp"
     },
     "idempotency_key": {
@@ -256,7 +253,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
         }
       ],
       "default": null,
-      "description": "POSITION VALUE / notional (USD) — NOT the margin you put up. E.g. size_usd=100 => a $100 position (margin = 100/leverage). If the user says 'X dollars at 5x' meaning MARGIN, use margin_usd instead. Provide EXACTLY ONE of size_usd / margin_usd / risk_pct; never invent a value the user did not give.",
+      "description": "POSITION VALUE / notional (USD) — NOT the margin you put up. E.g. size_usd=100 => a $100 position (margin = 100/leverage). If the user says 'X dollars at 5x' meaning MARGIN, use margin_usd instead. Provide EXACTLY ONE of size_usd / margin_usd / risk_pct.",
       "title": "Size Usd"
     },
     "margin_usd": {
@@ -269,7 +266,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
         }
       ],
       "default": null,
-      "description": "MARGIN / collateral (USD) — the money out of your own pocket. notional = margin_usd x leverage. E.g. '$20 at 5x' => margin_usd=20 => a $100 position. This is usually what users mean by 'X dollars' with leverage. EXACTLY ONE of size_usd / margin_usd / risk_pct; never invent a value.",
+      "description": "MARGIN / collateral (USD) — the money out of your own pocket. notional = margin_usd x leverage. E.g. '$20 at 5x' => margin_usd=20 => a $100 position. This is usually what users mean by 'X dollars' with leverage. EXACTLY ONE of size_usd / margin_usd / risk_pct.",
       "title": "Margin Usd"
     },
     "risk_pct": {
@@ -335,7 +332,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
         }
       ],
       "default": null,
-      "description": "SCALED take-profit (partial TP). A list: [{\"price\": 70000, \"close_pct\": 50}, {\"price\": 75000, \"close_pct\": 50}] — close_pct is the percentage of the position closed at that target and the TOTAL may not exceed 100%. Prices must follow target order (ascending for long, descending for short). For a single target use `tp` instead; the two cannot be sent together. Never invent targets the user did not give.",
+      "description": "SCALED take-profit (partial TP). A list: [{\"price\": 70000, \"close_pct\": 50}, {\"price\": 75000, \"close_pct\": 50}] — close_pct is the percentage of the position closed at that target and the TOTAL may not exceed 100%. Prices must follow target order (ascending for long, descending for short). For a single target use `tp` instead; the two cannot be sent together.",
       "title": "Take Profits"
     },
     "sl_pct": {
@@ -348,7 +345,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
         }
       ],
       "default": null,
-      "description": "Give SL as a PERCENTAGE (e.g. 3 = 3% away from entry). If the user said '3% SL', use THIS — do not compute the price yourself and do NOT call get_market_price; the server computes it from the live entry. Cannot be combined with `sl`. If the user did NOT state a value, LEAVE IT EMPTY: the server applies the SL percentage saved in the user's AlgoVesta account (the same default used everywhere else in the product). Producing your own value overrides the user's setting.",
+      "description": "SL as a PERCENTAGE (e.g. 3 = 3% away from entry). The server converts it to a price from the live entry and returns the result as `sl` with `pct_used`, so no separate price lookup is involved. Cannot be combined with `sl`. Optional: when omitted, the SL percentage saved in the user's AlgoVesta account is applied (the same default used everywhere else in the product); a value sent here overrides that setting.",
       "title": "Sl Pct"
     },
     "tp_pct": {
@@ -361,7 +358,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
         }
       ],
       "default": null,
-      "description": "Give TP as a PERCENTAGE (e.g. 5 = 5% away from entry). If the user said '5% TP', use THIS — do not compute the price yourself. Cannot be combined with `tp`. If the user did not state one, LEAVE IT EMPTY — the user's saved TP percentage is applied.",
+      "description": "TP as a PERCENTAGE (e.g. 5 = 5% away from entry). The server converts it to a price from the live entry and returns the result as `tp` with `pct_used`. Cannot be combined with `tp`. Optional: when omitted, the user's saved TP percentage is applied.",
       "title": "Tp Pct"
     },
     "account": {
@@ -374,7 +371,7 @@ customer said); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct. Do not se
         }
       ],
       "default": null,
-      "description": "TARGET ACCOUNT — the account this call acts on (for place_order/simulate_order the account the order is opened in; for close/modify the account holding the position). For MT5 the login number (e.g. '12345678'), for exchanges the account label (e.g. 'Binance2'). Copy it EXACTLY from the 'account' field in the get_portfolio_context output. REQUIRED when the user has more than one account in the same market: if left empty the action is NOT performed and the user is asked which account — it is never silently applied to the default/primary account. Never choose without the user saying so.",
+      "description": "TARGET ACCOUNT — the account this call acts on (for place_order/simulate_order the account the order is opened in; for close/modify the account holding the position). For MT5 the login number (e.g. '12345678'), for exchanges the account label (e.g. 'Binance2'). Copy it EXACTLY from the 'account' field in the get_portfolio_context output. REQUIRED when the user has more than one account in the same market: if left empty the action is NOT performed and the user is asked which account — it is never silently applied to the default/primary account.",
       "title": "Account"
     }
   },
@@ -403,21 +400,16 @@ second time the stored response is returned and a second order is NEVER opened.
 scope=paper runs on the paper engine, scope=live runs through live execution.
 The policy wall runs server-side; a violation means a hard reject + audit entry.
 
-CONFIRMATION: if the user has ALREADY confirmed the simulate_order summary once,
-call place_order DIRECTLY — do not ask again, do not reprint the summary, do not
-re-ask for information.
-Ask for all missing fields in ONE message; NEVER invent a value for any field.
-AMOUNT DISTINCTION (CRITICAL): if 'X dollars' with leverage is ambiguous between
-MARGIN (margin_usd) and POSITION VALUE (size_usd), ASK — do not open an order of the
-wrong size.
-SIZE FIELD DEPENDS ON MARKET: forex/MT5 -> `lots` (exactly the lot size the customer
-stated, never rounded to a fixed value); crypto -> EXACTLY ONE of
-size_usd/margin_usd/risk_pct. Do not send `leverage` for forex (the product is
-unleveraged).
-ACCOUNT DISTINCTION (CRITICAL): the user may have several accounts in the same
-market (two MT5 accounts, 'Binance' + 'Binance2'). Pass WHICH account via `account`;
-if it is not clear, ASK. Opening an order in the wrong account is WORSE than not
-opening one at all.
+Same arguments as simulate_order; a call with the arguments of a simulation places
+that order. Missing required fields are returned together in ONE error.
+AMOUNT FIELDS: margin_usd is the collateral, size_usd the position value.
+SIZE FIELD DEPENDS ON MARKET: forex/MT5 -> `lots` (used exactly as given, never
+rounded to a fixed value); crypto -> EXACTLY ONE of size_usd/margin_usd/risk_pct.
+`leverage` is not used for forex (the product is unleveraged).
+ACCOUNTS: when the user has several accounts in the same market (two MT5 accounts,
+'Binance' + 'Binance2'), `account` selects one; without it the order is NOT placed
+and the candidate accounts are returned — it never falls back to a default account.
+`warnings` in the response mean the order differs from the request.
 
 <details>
 <summary>Input schema (JSON Schema)</summary>
@@ -434,7 +426,7 @@ opening one at all.
           "type": "null"
         }
       ],
-      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). Never choose one the user did not name.",
+      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). A venue that is not connected is rejected with VENUE_NOT_CONNECTED.",
       "title": "Venue"
     },
     "symbol": {
@@ -458,7 +450,7 @@ opening one at all.
           "type": "null"
         }
       ],
-      "description": "'buy' (long) or 'sell' (short). Never choose without an EXPLICIT user instruction.",
+      "description": "'buy' (long) or 'sell' (short). The side the user stated.",
       "title": "Side"
     },
     "order_type": {
@@ -483,7 +475,7 @@ opening one at all.
         }
       ],
       "default": null,
-      "description": "Leverage (crypto). Send it if the user STATED one; if they did NOT, LEAVE IT EMPTY — the server applies the leverage saved in the user's panel. NEVER pick a value yourself: leverage changes position size and overrides the user's setting. For FOREX/MT5 do NOT ask and do NOT send: the product is unleveraged (1x) and size is given via lots.",
+      "description": "Leverage (crypto). Optional: when omitted, the leverage saved in the user's panel is applied and reported in `prefs_used`. A value sent here overrides that saved setting and changes the position size. Not used for FOREX/MT5: that product is unleveraged (1x) and size is given via lots.",
       "title": "Leverage"
     },
     "sl": {
@@ -496,7 +488,7 @@ opening one at all.
         }
       ],
       "default": null,
-      "description": "Stop-loss PRICE. Below entry for long, above entry for short. If the user did NOT state one, LEAVE IT EMPTY — the user's saved SL percentage is applied (use `sl_pct` if you want to pass a percentage). NEVER invent a price. SL remains mandatory: if neither a value nor a saved setting exists, the order is NOT opened.",
+      "description": "Stop-loss PRICE. Below entry for long, above entry for short. Optional: when omitted, the user's saved SL percentage is applied (reported in `prefs_used`); `sl_pct` takes a percentage instead of a price. A value sent here overrides the saved setting. SL remains mandatory: if neither a value nor a saved setting exists, the order is NOT opened.",
       "title": "Sl"
     },
     "tp": {
@@ -509,7 +501,7 @@ opening one at all.
         }
       ],
       "default": null,
-      "description": "Take-profit PRICE. Above entry for long, below entry for short. If the user did NOT state one, LEAVE IT EMPTY — the user's saved TP percentage is applied. NEVER invent a price.",
+      "description": "Take-profit PRICE. Above entry for long, below entry for short. Optional: when omitted, the user's saved TP percentage is applied (reported in `prefs_used`). A value sent here overrides the saved setting.",
       "title": "Tp"
     },
     "idempotency_key": {
@@ -534,7 +526,7 @@ opening one at all.
         }
       ],
       "default": null,
-      "description": "POSITION VALUE / notional (USD) — NOT the margin you put up. E.g. size_usd=100 => a $100 position (margin = 100/leverage). If the user says 'X dollars at 5x' meaning MARGIN, use margin_usd instead. Provide EXACTLY ONE of size_usd / margin_usd / risk_pct; never invent a value the user did not give.",
+      "description": "POSITION VALUE / notional (USD) — NOT the margin you put up. E.g. size_usd=100 => a $100 position (margin = 100/leverage). If the user says 'X dollars at 5x' meaning MARGIN, use margin_usd instead. Provide EXACTLY ONE of size_usd / margin_usd / risk_pct.",
       "title": "Size Usd"
     },
     "margin_usd": {
@@ -547,7 +539,7 @@ opening one at all.
         }
       ],
       "default": null,
-      "description": "MARGIN / collateral (USD) — the money out of your own pocket. notional = margin_usd x leverage. E.g. '$20 at 5x' => margin_usd=20 => a $100 position. This is usually what users mean by 'X dollars' with leverage. EXACTLY ONE of size_usd / margin_usd / risk_pct; never invent a value.",
+      "description": "MARGIN / collateral (USD) — the money out of your own pocket. notional = margin_usd x leverage. E.g. '$20 at 5x' => margin_usd=20 => a $100 position. This is usually what users mean by 'X dollars' with leverage. EXACTLY ONE of size_usd / margin_usd / risk_pct.",
       "title": "Margin Usd"
     },
     "risk_pct": {
@@ -613,7 +605,7 @@ opening one at all.
         }
       ],
       "default": null,
-      "description": "SCALED take-profit (partial TP). A list: [{\"price\": 70000, \"close_pct\": 50}, {\"price\": 75000, \"close_pct\": 50}] — close_pct is the percentage of the position closed at that target and the TOTAL may not exceed 100%. Prices must follow target order (ascending for long, descending for short). For a single target use `tp` instead; the two cannot be sent together. Never invent targets the user did not give.",
+      "description": "SCALED take-profit (partial TP). A list: [{\"price\": 70000, \"close_pct\": 50}, {\"price\": 75000, \"close_pct\": 50}] — close_pct is the percentage of the position closed at that target and the TOTAL may not exceed 100%. Prices must follow target order (ascending for long, descending for short). For a single target use `tp` instead; the two cannot be sent together.",
       "title": "Take Profits"
     },
     "sl_pct": {
@@ -626,7 +618,7 @@ opening one at all.
         }
       ],
       "default": null,
-      "description": "Give SL as a PERCENTAGE (e.g. 3 = 3% away from entry). If the user said '3% SL', use THIS — do not compute the price yourself and do NOT call get_market_price; the server computes it from the live entry. Cannot be combined with `sl`. If the user did NOT state a value, LEAVE IT EMPTY: the server applies the SL percentage saved in the user's AlgoVesta account (the same default used everywhere else in the product). Producing your own value overrides the user's setting.",
+      "description": "SL as a PERCENTAGE (e.g. 3 = 3% away from entry). The server converts it to a price from the live entry and returns the result as `sl` with `pct_used`, so no separate price lookup is involved. Cannot be combined with `sl`. Optional: when omitted, the SL percentage saved in the user's AlgoVesta account is applied (the same default used everywhere else in the product); a value sent here overrides that setting.",
       "title": "Sl Pct"
     },
     "tp_pct": {
@@ -639,7 +631,7 @@ opening one at all.
         }
       ],
       "default": null,
-      "description": "Give TP as a PERCENTAGE (e.g. 5 = 5% away from entry). If the user said '5% TP', use THIS — do not compute the price yourself. Cannot be combined with `tp`. If the user did not state one, LEAVE IT EMPTY — the user's saved TP percentage is applied.",
+      "description": "TP as a PERCENTAGE (e.g. 5 = 5% away from entry). The server converts it to a price from the live entry and returns the result as `tp` with `pct_used`. Cannot be combined with `tp`. Optional: when omitted, the user's saved TP percentage is applied.",
       "title": "Tp Pct"
     },
     "account": {
@@ -652,7 +644,7 @@ opening one at all.
         }
       ],
       "default": null,
-      "description": "TARGET ACCOUNT — the account this call acts on (for place_order/simulate_order the account the order is opened in; for close/modify the account holding the position). For MT5 the login number (e.g. '12345678'), for exchanges the account label (e.g. 'Binance2'). Copy it EXACTLY from the 'account' field in the get_portfolio_context output. REQUIRED when the user has more than one account in the same market: if left empty the action is NOT performed and the user is asked which account — it is never silently applied to the default/primary account. Never choose without the user saying so.",
+      "description": "TARGET ACCOUNT — the account this call acts on (for place_order/simulate_order the account the order is opened in; for close/modify the account holding the position). For MT5 the login number (e.g. '12345678'), for exchanges the account label (e.g. 'Binance2'). Copy it EXACTLY from the 'account' field in the get_portfolio_context output. REQUIRED when the user has more than one account in the same market: if left empty the action is NOT performed and the user is asked which account — it is never silently applied to the default/primary account.",
       "title": "Account"
     }
   },
@@ -712,9 +704,7 @@ crypto venues accept market orders only (a live crypto limit order is refused
 with live_limit_not_supported, never silently converted), so an empty list on
 a live account means nothing is pending — not that something disappeared.
 
-VERIFICATION: call get_portfolio_context / list_open_orders WITHOUT asking for
-confirmation (they are read operations). Ask the user only ONE confirmation
-question.
+This is a read operation with no side effects.
 
 <details>
 <summary>Input schema (JSON Schema)</summary>
@@ -754,9 +744,7 @@ idempotency_key is REQUIRED: calling again with the same key returns the stored
 response. This is a RISK-REDUCING operation: the policy wall does not block it
 (except the kill switch).
 
-VERIFICATION: call list_open_orders WITHOUT asking for confirmation (it is a read
-operation), then cancel with ONE confirmation. Never choose an order the user did
-not name.
+list_open_orders shows the order_ref of each pending order.
 
 <details>
 <summary>Input schema (JSON Schema)</summary>
@@ -773,7 +761,7 @@ not name.
           "type": "null"
         }
       ],
-      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). Never choose one the user did not name.",
+      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). A venue that is not connected is rejected with VENUE_NOT_CONNECTED.",
       "title": "Venue"
     },
     "order_ref": {
@@ -785,7 +773,7 @@ not name.
           "type": "null"
         }
       ],
-      "description": "Reference of the pending order to cancel (taken from list_open_orders). Never choose an order the user did not name.",
+      "description": "Reference of the pending order to cancel (taken from list_open_orders). An order_ref that does not belong to the user returns NOT_FOUND.",
       "title": "Order Ref"
     },
     "idempotency_key": {
@@ -828,9 +816,7 @@ MT5 positions can only be closed IN FULL (no partial close) -> use fraction=1. I
 MT5 positions are open on the same symbol, `ticket` becomes REQUIRED; while it is
 ambiguous, none are closed.
 
-VERIFICATION: call get_portfolio_context / list_open_orders WITHOUT asking for
-confirmation (they are read operations). Ask the user only ONE confirmation
-question.
+get_portfolio_context shows the open positions (and MT5 tickets).
 
 <details>
 <summary>Input schema (JSON Schema)</summary>
@@ -847,7 +833,7 @@ question.
           "type": "null"
         }
       ],
-      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). Never choose one the user did not name.",
+      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). A venue that is not connected is rejected with VENUE_NOT_CONNECTED.",
       "title": "Venue"
     },
     "symbol": {
@@ -871,7 +857,7 @@ question.
           "type": "null"
         }
       ],
-      "description": "'buy' (long) or 'sell' (short). Never choose without an EXPLICIT user instruction.",
+      "description": "'buy' (long) or 'sell' (short). The side the user stated.",
       "title": "Side"
     },
     "idempotency_key": {
@@ -909,7 +895,7 @@ question.
         }
       ],
       "default": null,
-      "description": "TARGET ACCOUNT — the account this call acts on (for place_order/simulate_order the account the order is opened in; for close/modify the account holding the position). For MT5 the login number (e.g. '12345678'), for exchanges the account label (e.g. 'Binance2'). Copy it EXACTLY from the 'account' field in the get_portfolio_context output. REQUIRED when the user has more than one account in the same market: if left empty the action is NOT performed and the user is asked which account — it is never silently applied to the default/primary account. Never choose without the user saying so.",
+      "description": "TARGET ACCOUNT — the account this call acts on (for place_order/simulate_order the account the order is opened in; for close/modify the account holding the position). For MT5 the login number (e.g. '12345678'), for exchanges the account label (e.g. 'Binance2'). Copy it EXACTLY from the 'account' field in the get_portfolio_context output. REQUIRED when the user has more than one account in the same market: if left empty the action is NOT performed and the user is asked which account — it is never silently applied to the default/primary account.",
       "title": "Account"
     },
     "ticket": {
@@ -953,9 +939,7 @@ If you send only ONE side, the other keeps the position's CURRENT value — the 
 you omit is NOT deleted. If several MT5 positions are open on the same symbol,
 `ticket` becomes REQUIRED; while it is ambiguous, NONE are modified.
 
-VERIFICATION: call get_portfolio_context WITHOUT asking for confirmation (it is a
-read operation), then apply with ONE confirmation. Never change levels the user did
-not specify.
+get_portfolio_context shows the current SL/TP of each position.
 
 <details>
 <summary>Input schema (JSON Schema)</summary>
@@ -972,7 +956,7 @@ not specify.
           "type": "null"
         }
       ],
-      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). Never choose one the user did not name.",
+      "description": "Exchange/venue name — must be one of the user's CONNECTED accounts (e.g. binance, bybit, okx, mt5, paper). A venue that is not connected is rejected with VENUE_NOT_CONNECTED.",
       "title": "Venue"
     },
     "symbol": {
@@ -996,7 +980,7 @@ not specify.
           "type": "null"
         }
       ],
-      "description": "'buy' (long) or 'sell' (short). Never choose without an EXPLICIT user instruction.",
+      "description": "'buy' (long) or 'sell' (short). The side the user stated.",
       "title": "Side"
     },
     "idempotency_key": {
@@ -1047,7 +1031,7 @@ not specify.
         }
       ],
       "default": null,
-      "description": "TARGET ACCOUNT — the account this call acts on (for place_order/simulate_order the account the order is opened in; for close/modify the account holding the position). For MT5 the login number (e.g. '12345678'), for exchanges the account label (e.g. 'Binance2'). Copy it EXACTLY from the 'account' field in the get_portfolio_context output. REQUIRED when the user has more than one account in the same market: if left empty the action is NOT performed and the user is asked which account — it is never silently applied to the default/primary account. Never choose without the user saying so.",
+      "description": "TARGET ACCOUNT — the account this call acts on (for place_order/simulate_order the account the order is opened in; for close/modify the account holding the position). For MT5 the login number (e.g. '12345678'), for exchanges the account label (e.g. 'Binance2'). Copy it EXACTLY from the 'account' field in the get_portfolio_context output. REQUIRED when the user has more than one account in the same market: if left empty the action is NOT performed and the user is asked which account — it is never silently applied to the default/primary account.",
       "title": "Account"
     },
     "ticket": {
@@ -1147,7 +1131,7 @@ policy_rejections}}.
           "type": "null"
         }
       ],
-      "description": "Reference of the Telegram channel to analyze (a channel the user follows or knows). Never choose a channel the user did not name.",
+      "description": "Reference of the Telegram channel to analyze (a channel the user follows or knows).",
       "title": "Channel Ref"
     },
     "days": {
@@ -1193,17 +1177,16 @@ Each trade carries symbol, side, size, entry/exit price, SL/TP, PnL, venue, sour
 (telegram / webhook / mcp / manual) and timestamps. The summary adds win rate,
 total PnL, average R-multiple and a per-venue breakdown.
 
-HOW TO READ IT HONESTLY - say these out loud instead of smoothing them over:
+HOW TO READ THE SUMMARY:
 - `avg_rr` is computed only from trades where entry, SL and exit are ALL known;
   `rr_sample` tells you how many trades that was. A 3-trade average is not evidence.
 - `total_pnl` is null when several account currencies are mixed (e.g. a EUR MT5
-  account next to USD crypto). Use `pnl_by_currency` and never add them together.
+  account next to USD crypto). `pnl_by_currency` keeps them apart; amounts in different currencies are not summed.
 - `fee` is null because commission is not recorded; PnL is therefore GROSS on crypto.
 - `incomplete_sources` means part of the history could not be read - the summary is
-  then incomplete and you must say so.
+  then incomplete.
 
-This is a read tool: call it without asking the user for confirmation. It is history
-only; it does not tell you what will happen next, and past results do not predict
+This is a read operation with no side effects. It is history only; it does not tell you what will happen next, and past results do not predict
 future ones.
 
 <details>
@@ -1340,7 +1323,7 @@ HOW TO READ IT:
         }
       ],
       "default": null,
-      "description": "'buy' (long) or 'sell' (short). Never choose without an EXPLICIT user instruction.",
+      "description": "'buy' (long) or 'sell' (short). The side the user stated.",
       "title": "Side"
     },
     "size_usd": {
@@ -1372,14 +1355,14 @@ HOW TO READ IT:
 Lists the user's TradingView strategies with their settings, plan limit and
 whether real-money execution is currently on.
 
-Read `auto_trade` carefully and report it plainly: auto_trade=false means signals
+`auto_trade` is the real-money switch: auto_trade=false means signals
 are only recorded, NOT traded with real money. auto_trade=true means every accepted
 signal on that strategy becomes a real order.
 
 The webhook URL is NEVER returned - that address is a password: anyone holding it
 can send signals into the account. The user copies it from the AlgoVesta panel.
 
-This is a read tool: call it without asking for confirmation.
+This is a read operation with no side effects.
 
 <details>
 <summary>Input schema (JSON Schema)</summary>
@@ -1403,11 +1386,11 @@ Creates a new TradingView strategy. It starts with REAL-MONEY EXECUTION OFF
 (auto_trade=false) and that cannot be changed from here - the user turns it on
 themselves in the AlgoVesta panel. Creating a strategy therefore never risks money.
 
-The strategy's webhook URL is not returned (it is a password); tell the user to copy
-it from the panel and paste it into their TradingView alert.
+The strategy's webhook URL is not returned (it is a password); the user copies it
+from the panel into their TradingView alert.
 
-Fails with a plan-limit error if the account has reached its strategy quota; call
-list_strategies first to see `plan_limit` and `can_create_more`.
+Fails with a plan-limit error if the account has reached its strategy quota;
+list_strategies reports `plan_limit` and `can_create_more`.
 
 idempotency_key is REQUIRED: calling again with the same key returns the stored
 response instead of creating a SECOND strategy.
@@ -1467,14 +1450,13 @@ WHAT THIS TOOL CANNOT DO, on purpose:
 - `ip_allowlist` is REFUSED: it is the second factor that verifies where signals come
   from, so it must not be weakened from here.
 - Deleting a strategy is not possible here; that is done in the panel.
-Fields that were refused come back in `refused_fields` - report them to the user
-rather than silently claiming success.
+Fields that were refused come back in `refused_fields`; the other fields are still
+applied.
 
-If you set `reverse_enabled` to true the response contains a `warning`: from then on
-a BUY signal opens a SHORT and a SELL signal opens a LONG on that strategy. You MUST
-pass that warning on to the user.
+Setting `reverse_enabled` to true returns a `warning`: from then on a BUY signal
+opens a SHORT and a SELL signal opens a LONG on that strategy.
 
-Never change a setting the user did not ask for. idempotency_key is REQUIRED.
+Only the fields present in `changes` are modified. idempotency_key is REQUIRED.
 
 <details>
 <summary>Input schema (JSON Schema)</summary>
@@ -1492,7 +1474,7 @@ Never change a setting the user did not ask for. idempotency_key is REQUIRED.
         }
       ],
       "default": null,
-      "description": "id of the strategy to change, taken from list_strategies. Never pick a strategy the user did not name.",
+      "description": "id of the strategy to change, as listed by list_strategies.",
       "title": "Strategy Id"
     },
     "changes": {
@@ -1544,9 +1526,9 @@ each signal's original stop-loss, take-profit and leverage, and once with the
 settings you asked for. The difference is reported under `comparison`.
 
 This runs in the background because a full replay can take several minutes. The call
-returns a `job_ref` immediately; poll `get_job_status(job_ref)` for the result.
+returns a `job_ref` immediately; the result is available from `get_job_status(job_ref)`.
 
-What the result always tells you, and what you MUST pass on to the user:
+What the result always reports:
 - `coverage`: how many of their signals could actually be simulated. If some had no
   historical price data or no stop-loss, the numbers describe only the subset.
 - `assumptions`: fees, slippage, partial-take-profit behaviour and what is NOT
@@ -1706,7 +1688,7 @@ reports which ones would have been rejected, by which rule, and the PnL differen
 Runs in the background: the call returns a `job_ref`, and `get_job_status(job_ref)`
 returns the result.
 
-Two honesty limits are always reported in `assumptions` and MUST be passed on:
+Two honesty limits are always reported in `assumptions`:
 - Rules that depend on account state at the moment of the order (open position count,
   daily loss so far, balance) are evaluated with zeros, because that state cannot be
   reconstructed from closed trades. Those rules are UNDER-counted, never over-counted.
@@ -1853,15 +1835,14 @@ Deliberate limits, always repeated in the result:
 Returns the state and, once finished, the result of a background job started by
 backtest_my_signals, simulate_policy or import_tradingview_backtest.
 
-Call it with no argument to list your recent jobs.
+With no argument it lists the user's recent jobs.
 
 `status` is one of: PENDING (queued), RUNNING (in progress - `progress` is a
 percentage), DONE (`result` is present), FAILED (a retry is scheduled), DEAD (it will
 not be retried - `error` says why) or CANCELLED.
 
 Jobs run one at a time, so `queue_position` tells the user how many are ahead of
-theirs. Do not poll faster than about once every 10 seconds, and tell the user what
-the job is doing rather than repeating raw status codes at them.
+theirs.
 
 Storage: only the 20 most recent finished jobs keep their full result. Older ones
 are reduced to their summary and come back with `result_pruned: true` — the detailed
