@@ -75,8 +75,9 @@ exchange. If the price is older than 10s OR cannot be fetched, that is stated EX
 a stale price is never presented as live.
 
 If venue is given, that exchange is used; otherwise the user's CONNECTED exchanges are
-searched. If found on no CEX, a DEX (DexScreener) informational price is returned together
-with a 'you CANNOT trade this on your connected exchanges' warning.
+searched. venue="paper" returns the exact price the paper engine fills at. If the symbol is
+found on no exchange, price_unavailable is returned (no DEX guess: a ticker symbol does not
+identify a DEX token reliably).
 Returns: {ok, venue, symbol, last, bid, ask, ts, source, age_sec} or {ok:false, error,...}.
 
 <details>
