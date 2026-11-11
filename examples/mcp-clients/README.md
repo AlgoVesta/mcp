@@ -1,5 +1,7 @@
 # Calling the AlgoVesta MCP server from your own code
 
+A fuller set of five runnable paper-mode examples is in [AlgoVesta/algovesta-mcp-examples](https://github.com/AlgoVesta/algovesta-mcp-examples).
+
 The server speaks standard MCP over HTTP, so any MCP client library works. These two minimal programs connect with a secret link, list the tools, read the portfolio, get a quote and place a **paper** order (`venue: "paper"`; use a connected exchange name such as `binance` or `mt5` for a real account). Replace `avmcp_<your-key>` with the key from the dashboard; a `read` or `paper` scoped key is enough for everything here.
 
 Tool names and schemas are in [docs/TOOLS.md](../../docs/TOOLS.md). Every order goes through the server-side policy wall and a stop-loss is required; a request that violates your rules is rejected with a reason, not silently adjusted.

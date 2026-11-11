@@ -37,4 +37,6 @@ TradingView alerts send only the URL and the message body. They cannot set HTTP 
 | `forex-mt5.json` | Forex or gold alert routed to MetaTrader 5 with a fixed lot. |
 | `crypto-margin-leverage.json` | Crypto futures alert with explicit margin and leverage. |
 
+Versioned copies of these templates with Pine Script examples and a case list: [AlgoVesta/algovesta-tradingview-templates](https://github.com/AlgoVesta/algovesta-tradingview-templates).
+
 Test every template with the dashboard's "Send test signal" before saving the alert: the test runs the full parse and risk checks without placing an order.

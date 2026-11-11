@@ -381,10 +381,16 @@ The kill switch in the panel (`POST /api/mcp/freeze`) stops everything at once; 
 
 ## Examples
 
+Three example repositories, each with its own CI:
+
+- [AlgoVesta/algovesta-tradingview-templates](https://github.com/AlgoVesta/algovesta-tradingview-templates): TradingView webhook JSON templates and two Pine Script examples (indicator with `alertcondition()`, strategy with position-state fields), with the receiver's result for each case.
+- [AlgoVesta/algovesta-mcp-examples](https://github.com/AlgoVesta/algovesta-mcp-examples): five Python programs using the official `mcp` client library in paper mode: list tools, read a price, place an order with stop-loss and take-profit, move the stop-loss, close.
+- [AlgoVesta/algovesta-telegram-signal-formats](https://github.com/AlgoVesta/algovesta-telegram-signal-formats): Telegram signal formats with the output of AlgoVesta's parser for each message.
+
 Ready-to-use files in [`examples/`](examples/):
 
 - [TradingView alert templates](examples/tradingview/README.md): six JSON messages (basic entry, multi take-profit, Pine strategy with position state, close, forex on MT5, crypto with margin and leverage) and the field reference the webhook receiver uses.
-- [Telegram signal parsing corpus](examples/signals/README.md): 30 synthetic signal messages with the expected parse for each, for testing your own copier or seeing which formats the AlgoVesta parser is built for.
+- [Telegram signal parsing corpus](examples/signals/README.md): 30 synthetic signal messages with the parse a copier should aim for, for testing your own parser. The formats AlgoVesta's parser reads today, with its measured output, are in [algovesta-telegram-signal-formats](https://github.com/AlgoVesta/algovesta-telegram-signal-formats).
 - [MCP client code](examples/mcp-clients/README.md): minimal Python and Node.js programs that connect with a secret link, read the portfolio and place a paper order.
 - Client configs: [Cursor](examples/cursor/mcp.json), [VS Code](examples/vscode/mcp.json), [Gemini CLI](examples/gemini-cli/settings.json).
 - [Free TradingView webhook JSON generator & validator](https://algovesta.com/tradingview-webhook-json-generator.html): builds the alert message AlgoVesta reads (indicator or Pine strategy, crypto or MetaTrader 5) and checks a pasted alert for missing fields; runs in the browser, nothing is uploaded.
