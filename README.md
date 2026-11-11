@@ -387,6 +387,7 @@ Ready-to-use files in [`examples/`](examples/):
 - [Telegram signal parsing corpus](examples/signals/README.md): 30 synthetic signal messages with the expected parse for each, for testing your own copier or seeing which formats the AlgoVesta parser is built for.
 - [MCP client code](examples/mcp-clients/README.md): minimal Python and Node.js programs that connect with a secret link, read the portfolio and place a paper order.
 - Client configs: [Cursor](examples/cursor/mcp.json), [VS Code](examples/vscode/mcp.json), [Gemini CLI](examples/gemini-cli/settings.json).
+- [Free TradingView webhook JSON generator & validator](https://algovesta.com/tradingview-webhook-json-generator.html): builds the alert message AlgoVesta reads (indicator or Pine strategy, crypto or MetaTrader 5) and checks a pasted alert for missing fields; runs in the browser, nothing is uploaded.
 
 ## Support
 
