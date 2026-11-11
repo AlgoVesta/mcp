@@ -1,0 +1,11 @@
+{
+  "name": "algovesta",
+  "version": "1.0.0",
+  "description": "Trade 16 crypto exchanges and MetaTrader 5 from Gemini CLI through the hosted AlgoVesta MCP server. OAuth sign-in, paper scope by default.",
+  "mcpServers": {
+    "algovesta": {
+      "httpUrl": "https://api.algovesta.com/mcp"
+    }
+  },
+  "contextFileName": "GEMINI.md"
+}

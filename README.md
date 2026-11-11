@@ -133,7 +133,15 @@ claude mcp add --transport http algovesta https://api.algovesta.com/u/avmcp_<you
 
 ### Gemini CLI
 
-`~/.gemini/settings.json` — [file](examples/gemini-cli/settings.json). CLI only; the Gemini web app does not accept custom MCP servers.
+**As an extension (one command).** Installs the MCP server definition (OAuth endpoint), a context file and the `algovesta-trading` agent skill:
+
+```
+gemini extensions install https://github.com/AlgoVesta/mcp
+```
+
+Then run `/mcp auth algovesta` inside Gemini CLI to sign in through the browser consent page (paper scope by default).
+
+**Or by hand:** `~/.gemini/settings.json` — [file](examples/gemini-cli/settings.json). CLI only; the Gemini web app does not accept custom MCP servers.
 
 ```json
 {
@@ -146,6 +154,14 @@ claude mcp add --transport http algovesta https://api.algovesta.com/u/avmcp_<you
 ### Anything else
 
 The three config shapes you will meet, plus a `curl` connection check: [examples/other-clients.md](examples/other-clients.md)
+
+## Agent skill
+
+`skills/algovesta-trading/SKILL.md` teaches coding agents (Claude Code, Cursor, Codex, Gemini CLI and others supported by the [skills CLI](https://github.com/vercel-labs/skills)) how to connect and the safe order of operations: read, simulate, paper first, live only with a second-factor key. It contains instructions only and runs no commands.
+
+```
+npx skills add AlgoVesta/mcp --skill algovesta-trading
+```
 
 ## Supported AI clients
 

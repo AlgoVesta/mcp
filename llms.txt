@@ -14,6 +14,11 @@
 - [MCP client code examples](https://github.com/AlgoVesta/mcp/blob/main/examples/mcp-clients/README.md): Python and Node.js programs that list tools and place a paper order
 - [Machine-readable tool schemas](https://algovesta.com/mcp/tools.json): live tools/list output
 
+## Install
+
+- Agent skill: `npx skills add AlgoVesta/mcp --skill algovesta-trading` ([SKILL.md](https://github.com/AlgoVesta/mcp/blob/main/skills/algovesta-trading/SKILL.md))
+- Gemini CLI extension: `gemini extensions install https://github.com/AlgoVesta/mcp`, then `/mcp auth algovesta`
+
 ## Endpoints
 
 - MCP (OAuth 2.1): https://api.algovesta.com/mcp
